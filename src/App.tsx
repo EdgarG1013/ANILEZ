@@ -3,7 +3,7 @@ import Navbar from "./components/compartido/Navbar";
 import Footer from "./components/compartido/Footer";
 import { BibliotecaProvider } from "./store/biblioteca";
 
-// ─── Layout principal de ANILIST ──────────────────────────────────────────────
+// ─── Layout principal de ANILEZ ──────────────────────────────────────────────
 // Envuelve todas las páginas con la barra de navegación y el pie de página.
 // El contenido de cada ruta se renderiza a través de <Outlet />.
 

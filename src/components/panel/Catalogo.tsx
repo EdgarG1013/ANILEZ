@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Check, Plus, Loader2, AlertCircle } from "lucide-react";
+import { Search, Check, Plus, Loader2 } from "lucide-react";
 import {
   buscarCatalogo, TIPOS, ESTADOS, GENEROS, ANIOS, LETRAS, ORDENES, TEMPORADAS,
   type CatalogoItem, type Medio,
@@ -8,6 +8,7 @@ import {
 import { useBiblioteca } from "../../store/biblioteca";
 import { TipoBadge, PuntuacionBadge } from "../landing/badges";
 import Select from "../ui/Select";
+import CatalogoError from "../compartido/CatalogoError";
 
 // ─── Catálogo reutilizable (anime / manga) ───────────────────────────────────
 
@@ -93,6 +94,7 @@ export default function Catalogo({ medio, titulo }: { medio: Medio; titulo: stri
   const [total, setTotal] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Debounce de la barra de búsqueda
   useEffect(() => {
@@ -114,7 +116,7 @@ export default function Catalogo({ medio, titulo }: { medio: Medio; titulo: stri
       .catch(() => vivo && setError("No pudimos cargar el catálogo. Intenta de nuevo."))
       .finally(() => vivo && setCargando(false));
     return () => { vivo = false; };
-  }, [medio, q, letra, tipo, genero, anio, temporada, estado, orden, pagina, preferencias.sfw]);
+  }, [medio, q, letra, tipo, genero, anio, temporada, estado, orden, pagina, preferencias.sfw, retryKey]);
 
   const cambiar = (fn: (v: string) => void) => (v: string) => { fn(v); setPagina(1); };
 
@@ -188,11 +190,7 @@ export default function Catalogo({ medio, titulo }: { medio: Medio; titulo: stri
         </div>
       </div>
 
-      {error && (
-        <p className="flex items-center gap-2 text-sm text-[#ff9aa8] bg-[#d4183d]/10 border border-[#d4183d]/30 rounded-xl px-4 py-3 mb-4">
-          <AlertCircle className="w-4 h-4" /> {error}
-        </p>
-      )}
+      {error && <CatalogoError onReintentar={() => setRetryKey(k => k + 1)} />}
 
       {cargando ? (
         <div className="flex items-center justify-center py-20 text-[#8b82a8]">

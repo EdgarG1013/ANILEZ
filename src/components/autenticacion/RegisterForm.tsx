@@ -141,7 +141,7 @@ export default function RegisterForm() {
         >
           Crear cuenta
         </h2>
-        <p className="text-sm text-[#8b82a8] mt-1">Únete a la comunidad ANILIST</p>
+        <p className="text-sm text-[#8b82a8] mt-1">Únete a la comunidad ANILEZ</p>
       </div>
 
       {/* Error general */}

@@ -26,18 +26,18 @@ export default function ConfiguracionPage() {
   }
 
   const exportarJson = () =>
-    descargar(JSON.stringify({ entradas, grupos }, null, 2), "anilist-biblioteca.json", "application/json");
+    descargar(JSON.stringify({ entradas, grupos }, null, 2), "ANILEZ-biblioteca.json", "application/json");
 
   const exportarTxt = () => {
     const lineas = [
-      "ANILIST — Biblioteca personal",
+      "ANILEZ — Biblioteca personal",
       "",
       ...entradas.map(e => `[${e.medio}] ${e.titulo} — ${e.estado} — ${e.progreso}/${e.total ?? "?"} — agregado ${new Date(e.agregado).toLocaleDateString("es")}`),
       "",
       "Grupos:",
       ...grupos.map(g => `- ${g.titulo} (${g.etiquetas.join(", ")}): ${g.listas.map(l => `${l.nombre} [${l.items.length}]`).join(" | ")}`),
     ];
-    descargar(lineas.join("\n"), "anilist-biblioteca.txt", "text/plain");
+    descargar(lineas.join("\n"), "ANILEZ-biblioteca.txt", "text/plain");
   };
 
   async function importar(file: File) {

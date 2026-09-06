@@ -4,7 +4,7 @@ import logo from "../../assets/logo.svg";
 
 // ─── Layout compartido para las páginas de autenticación ─────────────────────
 // Divide la pantalla en dos paneles:
-//  - Izquierda: collage de fondo + marca ANILIST + texto descriptivo + features (oculto en móvil)
+//  - Izquierda: collage de fondo + marca ANILEZ + texto descriptivo + features (oculto en móvil)
 //  - Derecha: contenedor del formulario
 // Es responsivo: en móvil la parte de marca no se muestra.
 
@@ -44,7 +44,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         }}
       >
         {/* Logo */}
-        <img src={logo} alt="ANILIST" className="h-20 w-auto mb-15 self-start" />
+        <img src={logo} alt="ANILEZ" className="h-20 w-auto mb-15 self-start" />
 
         {/* Título */}
         <h1

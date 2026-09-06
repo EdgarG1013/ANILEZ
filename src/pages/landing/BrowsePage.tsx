@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   TrendingUp, Sparkles, Clock, Film, Radio, Tv, Star, CalendarDays,
-  Tag, Snowflake, Flower2, Sun, Leaf, ChevronLeft, ChevronRight, AlertCircle,
+  Tag, Snowflake, Flower2, Sun, Leaf, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import AnimeCard, { type AnimeCardData } from "../../components/landing/AnimeCard";
 import Select from "../../components/ui/Select";
 import {
   buscarCatalogo, buscarPorTemporada, TIPOS, ESTADOS, GENEROS,
-  type Temporada,
+  type Medio, type Temporada,
 } from "../../api/catalogoService";
+import CatalogoError from "../../components/compartido/CatalogoError";
 
 // ─── Navegador de anime (Browse) ─────────────────────────────────────────────
 // Lee la URL (?type=..., ?genre=..., ?year=...&season=...) y muestra una grilla
@@ -30,7 +31,7 @@ const GENRE_NAMES: Record<number, string> = {
 };
 
 type TipoPagina =
-  | "popular" | "season" | "upcoming" | "airing" | "movies"
+  | "popular" | "popular-all" | "season" | "upcoming" | "airing" | "movies"
   | "ona" | "ova" | "special" | "genre" | "season-archive";
 
 function useIcon(tipo: string, seasonName?: Temporada) {
@@ -43,6 +44,7 @@ function useIcon(tipo: string, seasonName?: Temporada) {
   }
   const map: Record<string, { icon: typeof Star; bg: string }> = {
     popular: { icon: TrendingUp, bg: "rgba(148,110,217,0.15)" },
+    "popular-all": { icon: TrendingUp, bg: "rgba(148,110,217,0.15)" },
     season: { icon: Sparkles, bg: "rgba(255,170,60,0.15)" },
     upcoming: { icon: Clock, bg: "rgba(0,180,180,0.15)" },
     airing: { icon: Radio, bg: "rgba(255,80,80,0.15)" },
@@ -63,6 +65,7 @@ function buildTitle(tipo: TipoPagina, genreId: number | null, anio: number | nul
   if (tipo === "season-archive" && season) return `${SEASON_LABELS[season]} ${anio ?? ""}`.trim();
   const map: Record<TipoPagina, string> = {
     popular: "Más Populares",
+    "popular-all": "Más Populares",
     season: "En Temporada",
     upcoming: "Próximos",
     airing: "Top en Emisión",
@@ -77,11 +80,12 @@ function buildTitle(tipo: TipoPagina, genreId: number | null, anio: number | nul
 }
 
 const SUBTITLES: Record<TipoPagina, string> = {
-  popular: "Los anime más populares de todos los tiempos",
-  season: "Anime que se está emitiendo en esta temporada",
-  upcoming: "Anime que se estrena muy pronto",
+  popular: "Los más populares de todos los tiempos",
+  "popular-all": "Anime y manga más populares de todos los tiempos",
+  season: "Que se está emitiendo en esta temporada",
+  upcoming: "Se estrena muy pronto",
   airing: "Los mejor puntuados que están en emisión",
-  movies: "Las películas de anime mejor valoradas",
+  movies: "Las películas mejor valoradas",
   ona: "Animaciones originales de internet",
   ova: "Animaciones de vídeo originales",
   special: "Episodios especiales y capítulos únicos",
@@ -97,6 +101,7 @@ export default function BrowsePage() {
   const navigate = useNavigate();
 
   const tipo = (params.get("type") || "popular") as TipoPagina;
+  const medioUrl = (params.get("medio") || "anime") as Medio;
   const genreId = params.get("genre") ? Number(params.get("genre")) : null;
   const anio = params.get("year") ? Number(params.get("year")) : null;
   const season = (params.get("season") as Temporada | null) || null;
@@ -113,6 +118,7 @@ export default function BrowsePage() {
   const [total, setTotal] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // El género puede venir de la URL como id (genre=22) o como filtro seleccionado.
   const generoSeleccionado = urlGenero && urlGenero !== String(genreId ?? "") ? urlGenero : String(genreId ?? "");
@@ -125,7 +131,7 @@ export default function BrowsePage() {
     setError(null);
 
     const f = {
-      medio: "anime" as const,
+      medio: medioUrl,
       q: params.get("q") || "",
       tipo: urlTipo,
       genero: generoSeleccionado,
@@ -136,7 +142,20 @@ export default function BrowsePage() {
     };
 
     const promesa: Promise<{ items: { id: number; title: string; img: string; type: string; year: number | null; score: number | null }[]; ultimaPagina: number; total: number }> =
-      tipo === "season-archive" && anio && season
+      tipo === "popular-all"
+        ? Promise.all([
+            buscarCatalogo({ medio: "anime", orden: "popularity:asc", pagina: paginaActual }),
+            buscarCatalogo({ medio: "manga", orden: "popularity:asc", pagina: paginaActual }),
+          ]).then(([animeRes, mangaRes]) => {
+            const combined = [...animeRes.items, ...mangaRes.items]
+              .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+            return {
+              items: combined,
+              ultimaPagina: Math.max(animeRes.ultimaPagina, mangaRes.ultimaPagina),
+              total: animeRes.total + mangaRes.total,
+            };
+          })
+        : tipo === "season-archive" && anio && season
         ? buscarPorTemporada(anio, season, paginaActual, true)
         : (() => {
             switch (tipo) {
@@ -164,10 +183,15 @@ export default function BrowsePage() {
 
     return () => { vivo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo, genreId, anio, season, urlTipo, urlGenero, urlEstado, paginaActual, params]);
+  }, [tipo, medioUrl, genreId, anio, season, urlTipo, urlGenero, urlEstado, paginaActual, params, retryKey]);
 
   const titulo = buildTitle(tipo, genreId, anio, season);
-  const subtitulo = tipo === "genre" ? `Anime de ${titulo} populares` : SUBTITLES[tipo];
+  const medioLabel = medioUrl === "manga" ? "Manga" : "Anime";
+  const subtitulo = tipo === "popular-all"
+    ? SUBTITLES[tipo]
+    : tipo === "genre"
+      ? `${medioLabel} de ${titulo} populares`
+      : `${medioLabel} — ${SUBTITLES[tipo]}`;
 
   function actualizarPagina(pagina: number) {
     const p = new URLSearchParams(params);
@@ -207,7 +231,7 @@ export default function BrowsePage() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {!FORMAT_PAGES.includes(tipo) && tipo !== "season-archive" && (
+        {!FORMAT_PAGES.includes(tipo) && tipo !== "season-archive" && tipo !== "popular-all" && (
           <Select
             valor={urlTipo}
             onChange={v => {
@@ -217,12 +241,12 @@ export default function BrowsePage() {
               p.delete("page");
               setParams(p, { replace: true });
             }}
-            opciones={[{ valor: "", etiqueta: "Tipo: Todos" }, ...TIPOS.anime.map(t => ({ valor: t, etiqueta: t }))]}
+            opciones={[{ valor: "", etiqueta: "Tipo: Todos" }, ...TIPOS[medioUrl].map(t => ({ valor: t, etiqueta: t }))]}
             className="w-44"
           />
         )}
 
-        {tipo !== "season-archive" && (
+        {tipo !== "season-archive" && tipo !== "popular-all" && (
           <Select
             valor={generoSeleccionado}
             onChange={v => {
@@ -247,7 +271,7 @@ export default function BrowsePage() {
               p.delete("page");
               setParams(p, { replace: true });
             }}
-            opciones={[{ valor: "", etiqueta: "Estado: Todos" }, ...ESTADOS.anime.map(s => ({ valor: s.valor, etiqueta: s.etiqueta }))]}
+            opciones={[{ valor: "", etiqueta: "Estado: Todos" }, ...ESTADOS[medioUrl].map(s => ({ valor: s.valor, etiqueta: s.etiqueta }))]}
             className="w-48"
           />
         )}
@@ -258,11 +282,7 @@ export default function BrowsePage() {
         {cargando ? "Cargando resultados…" : `${total.toLocaleString("es")} resultados`}
       </p>
 
-      {error && (
-        <p className="flex items-center gap-2 text-sm text-[#ff9aa8] bg-[#d4183d]/10 border border-[#d4183d]/30 rounded-xl px-4 py-3 mb-4">
-          <AlertCircle className="w-4 h-4" /> {error}
-        </p>
-      )}
+      {error && <CatalogoError onReintentar={() => setRetryKey(k => k + 1)} />}
 
       {/* Grilla */}
       {cargando ? (
@@ -275,7 +295,7 @@ export default function BrowsePage() {
         <p className="py-20 text-center text-[#8b82a8]">No encontramos títulos con esos filtros.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 mb-10">
-          {items.map(item => <AnimeCard key={item.id} anime={item} />)}
+          {items.map(item => <AnimeCard key={item.id} anime={item} medio={medioUrl} />)}
         </div>
       )}
 
