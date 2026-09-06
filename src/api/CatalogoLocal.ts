@@ -48,15 +48,15 @@ export const TEMPORADA_LOCAL: CatalogoItem[] = [
 // ─── Top anime ──────────────────────────────────────────────────────────────
 
 export const TOP_ANIME_LOCAL: PopularItem[] = [
-  { id: 38000, title: "Kimetsu no Yaiba", synopsis: "Un joven cazarrecompensas busca cura para su hermana demonio.", genres: ["Acción", "Sobrenatural"], year: 2019, count: 26, countLabel: "episodio", img: "" },
-  { id: 5114, title: "Fullmetal Alchemist: Brotherhood", synopsis: "Dos hermanos buscan la Piedra Filosofal para restaurar sus cuerpos.", genres: ["Acción", "Aventura"], year: 2009, count: 64, countLabel: "episodio", img: "" },
+  { id: 38000, title: "Kimetsu no Yaiba", synopsis: "Un joven cazarrecompensas busca cura para su hermana demonio.", genres: ["Acción", "Sobrenatural"], year: 2019, count: 26, countLabel: "episodio", img: "", medio: "anime" },
+  { id: 5114, title: "Fullmetal Alchemist: Brotherhood", synopsis: "Dos hermanos buscan la Piedra Filosofal para restaurar sus cuerpos.", genres: ["Acción", "Aventura"], year: 2009, count: 64, countLabel: "episodio", img: "", medio: "anime" },
 ];
 
 // ─── Top manga ──────────────────────────────────────────────────────────────
 
 export const TOP_MANGA_LOCAL: PopularItem[] = [
-  { id: 2, title: "Berserk", synopsis: "Un espadachín maldito lucha en un mundo oscuro y brutal.", genres: ["Acción", "Drama"], year: 1989, count: 376, countLabel: "capítulo", img: "" },
-  { id: 1, title: "One Piece", synopsis: "Un joven pirata busca el tesoro más grande del mundo.", genres: ["Acción", "Aventura"], year: 1997, count: 1140, countLabel: "capítulo", img: "" },
+  { id: 2, title: "Berserk", synopsis: "Un espadachín maldito lucha en un mundo oscuro y brutal.", genres: ["Acción", "Drama"], year: 1989, count: 376, countLabel: "capítulo", img: "", medio: "manga" },
+  { id: 1, title: "One Piece", synopsis: "Un joven pirata busca el tesoro más grande del mundo.", genres: ["Acción", "Aventura"], year: 1997, count: 1140, countLabel: "capítulo", img: "", medio: "manga" },
 ];
 
 // ─── Próximos estrenos ──────────────────────────────────────────────────────
