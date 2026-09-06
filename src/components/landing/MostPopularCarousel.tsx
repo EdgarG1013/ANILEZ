@@ -133,7 +133,7 @@ function MostPopularCarousel({ items, title, viewAllLabel = "Ver todo", basePath
           style={{ minHeight: "460px", order: reverse ? 3 : 1 }}
         >
           <div style={contentStyle}>
-            <Link to={`${basePath}/${item.id}`}>
+            <Link to={`${item.medio}/${item.id}`}>
               <h3
                 className="text-[#f0eefa] uppercase cursor-pointer transition-colors hover:text-[#946ed9]"
                 style={{
@@ -221,14 +221,14 @@ function MostPopularCarousel({ items, title, viewAllLabel = "Ver todo", basePath
         {/* Columna Poster */}
         <div style={{ height: "100%", order: reverse ? 1 : 3, ...contentStyle }}>
           <Link
-            to={`${basePath}/${item.id}`}
+            to={`${item.medio}/${item.id}`}
             className="block h-full overflow-hidden rounded-2xl"
             style={{ boxShadow: "0 8px 32px rgba(0, 0, 0, 0.35)" }}
           >
             <img
               src={item.img}
               alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+              className="w-full h-full"
               loading="eager"
             />
           </Link>
@@ -256,7 +256,7 @@ function MostPopularCarousel({ items, title, viewAllLabel = "Ver todo", basePath
           {/* Info */}
           <div className="flex flex-col justify-between p-5 min-h-[200px]">
             <div style={contentStyle}>
-              <Link to={`${basePath}/${item.id}`}>
+              <Link to={`${item.medio}/${item.id}`}>
                 <h3
                   className="text-[#f0eefa] uppercase tracking-tight leading-none mb-3 cursor-pointer transition-colors hover:text-[#946ed9]"
                   style={{ fontFamily: "'Oxanium', sans-serif", fontSize: "1.75rem", lineHeight: 0.95 }}
