@@ -32,8 +32,8 @@ export default function Navbar() {
       <div className="flex items-center max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 h-16 gap-4">
 
         {/* Logotipo */}
-        <a href="/" className="shrink-0 flex items-center" aria-label="ANILIST — Ir al inicio">
-          <img src={logo} alt="ANILIST" className="h-6 w-auto" />
+        <a href="/" className="shrink-0 flex items-center" aria-label="ANILEZ — Ir al inicio">
+          <img src={logo} alt="ANILEZ" className="h-6 w-auto" />
         </a>
 
         {/* Enlace de navegación — solo visibles en desktop */}

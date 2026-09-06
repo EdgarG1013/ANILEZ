@@ -1,4 +1,4 @@
-![anilist](./public/ANILIST.svg)
+![ANILEZ](./public/ANILEZ.svg)
 
 
 ---
@@ -6,11 +6,11 @@
 **1. Clonar o descargar el proyecto**
 
 ```bash
-git clone:https://github.com/EdgarG1013/ANILIST.git
+git clone:https://github.com/EdgarG1013/ANILEZ.git
 ```
 
 ```bash
-cd ANILIST
+cd ANILEZ
 ```
 
 **2. Instalar dependencias**

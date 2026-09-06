@@ -53,7 +53,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             style={{ background: "linear-gradient(135deg, rgba(148,110,217,0.25) 0%, rgba(10,9,16,0.7) 100%)" }}
           />
           <div className="absolute inset-0 flex items-end p-6 md:p-8">
-            <img src={logo} alt="ANILIST" className="h-7 md:h-8 w-auto drop-shadow-lg" />
+            <img src={logo} alt="ANILEZ" className="h-7 md:h-8 w-auto drop-shadow-lg" />
           </div>
         </div>
 

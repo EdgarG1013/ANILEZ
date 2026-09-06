@@ -111,7 +111,7 @@ interface BibliotecaCtx {
   setPreferencias: (p: Partial<Preferencias>) => void;
 }
 
-const LLAVE = "anilist:biblioteca:v1";
+const LLAVE = "ANILEZ:biblioteca:v1";
 
 const Ctx = createContext<BibliotecaCtx | null>(null);
 

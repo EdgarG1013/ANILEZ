@@ -54,8 +54,8 @@ export default function Footer() {
 
           {/* Marca e información general */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
-            <Link to="/" className="inline-block mb-4" aria-label="ANILIST">
-              <img src={logo} alt="ANILIST" className="h-5 w-auto" />
+            <Link to="/" className="inline-block mb-4" aria-label="ANILEZ">
+              <img src={logo} alt="ANILEZ" className="h-5 w-auto" />
             </Link>
             <p className="text-sm leading-relaxed max-w-[260px] mb-4">
               Tu espacio personal para rastrear, organizar y descubrir anime y manga.
@@ -95,7 +95,7 @@ export default function Footer() {
               Jikan API
             </a>
           </span>
-          <span>© 2026 ANILIST. Todos los derechos reservados.</span>
+          <span>© 2026 ANILEZ. Todos los derechos reservados.</span>
           <span className="flex items-center gap-3">
             <a href="#" className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors">
               Privacidad
