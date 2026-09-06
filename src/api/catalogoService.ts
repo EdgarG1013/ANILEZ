@@ -38,6 +38,7 @@ export interface PopularItem {
   count: number | null;
   countLabel: string;
   img: string;
+  medio: Medio;
 }
 
 export interface Personaje {
