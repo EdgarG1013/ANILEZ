@@ -43,8 +43,8 @@ function PanelNavbar({ onToggleMenu }: { onToggleMenu: () => void }) {
         <Menu className="w-4 h-4" />
       </button>
 
-      <Link to="/" className="flex items-center shrink-0" aria-label="ANILIST — Ir al inicio">
-        <img src={logo} alt="ANILIST" className="h-6 w-auto" />
+      <Link to="/" className="flex items-center shrink-0" aria-label="ANILEZ — Ir al inicio">
+        <img src={logo} alt="ANILEZ" className="h-6 w-auto" />
       </Link>
 
       <div className="flex-1" />
@@ -118,7 +118,7 @@ function PanelSidebar({ abierto, cerrar }: { abierto: boolean; cerrar: () => voi
         aria-label="Navegación del panel"
       >
         <div className="flex items-center justify-between lg:hidden mb-3 px-1">
-          <img src={logo} alt="ANILIST" className="h-5 w-auto" />
+          <img src={logo} alt="ANILEZ" className="h-5 w-auto" />
           <button onClick={cerrar} aria-label="Cerrar menú" className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#2a2140] text-[#8b82a8]">
             <X className="w-4 h-4" />
           </button>

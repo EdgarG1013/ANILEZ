@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import logo from "../../assets/logo.svg";
 
+const anioActual = new Date().getFullYear();
+
 // ─── Columnas de enlaces del pie de página ────────────────────────────────────
 
 const COLUMNAS = [
@@ -8,7 +10,7 @@ const COLUMNAS = [
     titulo: "Explorar",
     enlaces: [
       { etiqueta: "Inicio", ruta: "/" },
-      { etiqueta: "Más populares", ruta: "/explorar?type=popular" },
+      { etiqueta: "Más populares", ruta: "/explorar?type=popular-all" },
       { etiqueta: "Temporada actual", ruta: "/explorar?type=season" },
       { etiqueta: "Próximos estrenos", ruta: "/explorar?type=upcoming" },
       { etiqueta: "Top en emisión", ruta: "/explorar?type=airing" },
@@ -25,12 +27,12 @@ const COLUMNAS = [
     ],
   },
   {
-    titulo: "Temporada 2026",
+    titulo: `Temporada ${anioActual}`,
     enlaces: [
-      { etiqueta: "Invierno", ruta: "/explorar?type=season-archive&year=2026&season=winter" },
-      { etiqueta: "Primavera", ruta: "/explorar?type=season-archive&year=2026&season=spring" },
-      { etiqueta: "Verano", ruta: "/explorar?type=season-archive&year=2026&season=summer" },
-      { etiqueta: "Otoño", ruta: "/explorar?type=season-archive&year=2026&season=fall" },
+      { etiqueta: "Invierno", ruta: `/explorar?type=season-archive&year=${anioActual}&season=winter` },
+      { etiqueta: "Primavera", ruta: `/explorar?type=season-archive&year=${anioActual}&season=spring` },
+      { etiqueta: "Verano", ruta: `/explorar?type=season-archive&year=${anioActual}&season=summer` },
+      { etiqueta: "Otoño", ruta: `/explorar?type=season-archive&year=${anioActual}&season=fall` },
     ],
   },
   {
@@ -54,8 +56,8 @@ export default function Footer() {
 
           {/* Marca e información general */}
           <div className="col-span-2 sm:col-span-3 lg:col-span-2">
-            <Link to="/" className="inline-block mb-4" aria-label="ANILIST">
-              <img src={logo} alt="ANILIST" className="h-5 w-auto" />
+            <Link to="/" className="inline-block mb-4" aria-label="ANILEZ">
+              <img src={logo} alt="ANILEZ" className="h-5 w-auto" />
             </Link>
             <p className="text-sm leading-relaxed max-w-[260px] mb-4">
               Tu espacio personal para rastrear, organizar y descubrir anime y manga.
@@ -95,7 +97,7 @@ export default function Footer() {
               Jikan API
             </a>
           </span>
-          <span>© 2026 ANILIST. Todos los derechos reservados.</span>
+          <span>© {anioActual} ANILEZ. Todos los derechos reservados.</span>
           <span className="flex items-center gap-3">
             <a href="#" className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors">
               Privacidad
