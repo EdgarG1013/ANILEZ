@@ -241,7 +241,7 @@ function MostPopularCarousel({ items, title, viewAllLabel = "Ver todo", basePath
           {/* Poster */}
           <div style={contentStyle}>
             <Link
-              to={`${basePath}/${item.id}`}
+              to={`${item.medio}/${item.id}`}
               className="block relative sm:h-full aspect-[2/3] sm:aspect-auto overflow-hidden"
             >
               <img
