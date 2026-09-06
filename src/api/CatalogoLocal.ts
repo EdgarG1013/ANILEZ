@@ -69,5 +69,5 @@ export const PROXIMOS_LOCAL: CatalogoItem[] = [
 // ─── Noticias ───────────────────────────────────────────────────────────────
 
 export const NOTICIAS_LOCAL: Noticia[] = [
-  { id: 1, titulo: "Bienvenido a ANILIST", extracto: "Explora tu catálogo favorito de anime y manga.", img: "", fuente: "ANILIST", fecha: new Date().toISOString(), url: "" },
+  { id: 1, titulo: "Bienvenido a ANILEZ", extracto: "Explora tu catálogo favorito de anime y manga.", img: "", fuente: "ANILEZ", fecha: new Date().toISOString(), url: "" },
 ];
