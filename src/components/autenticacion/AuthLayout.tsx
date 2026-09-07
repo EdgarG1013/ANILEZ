@@ -1,6 +1,7 @@
 import React from "react";
 import { Bookmark, Star, TrendingUp } from "lucide-react";
 import logo from "../../assets/logo.svg";
+import bgAuth from "../../assets/bg-auth.webp";
 
 // ─── Layout compartido para las páginas de autenticación ─────────────────────
 // Divide la pantalla en dos paneles:
@@ -38,7 +39,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         className="hidden lg:flex flex-col justify-center flex-1 px-12 xl:px-20 border-r border-[#2a2140] relative"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(10, 9, 16, 0.7), rgba(10, 9, 16, 0.7)), url('/src/assets/bg-auth.webp')",
+            `linear-gradient(rgba(10, 9, 16, 0.7), rgba(10, 9, 16, 0.7)), url(${bgAuth})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
