@@ -8,6 +8,7 @@ export interface AnimeCardData {
   type: string;
   year: number | null;
   score: number | null;
+  medio?: "anime" | "manga";
 }
 
 // ─── Tarjeta de anime/manga reutilizable (grillas y navegador) ───────────────
@@ -17,9 +18,10 @@ interface Props {
   medio?: "anime" | "manga";
 }
 
-export default function AnimeCard({ anime, medio = "anime" }: Props) {
+export default function AnimeCard({ anime, medio }: Props) {
+  const medioFinal = medio ?? anime.medio ?? "anime";
   return (
-    <Link to={`/${medio}/${anime.id}`} className="block group">
+    <Link to={`/${medioFinal}/${anime.id}`} className="block group">
       <div className="bg-[#110f1a] rounded-2xl overflow-hidden border border-[#2a2140] group-hover:border-[#946ed9]/40 transition-all duration-200 group-hover:-translate-y-0.5 shadow-lg">
         <div className="relative aspect-[2/3] bg-[#1c1928]">
           <img
