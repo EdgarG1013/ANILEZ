@@ -147,8 +147,10 @@ export default function BrowsePage() {
             buscarCatalogo({ medio: "anime", orden: "popularity:asc", pagina: paginaActual }),
             buscarCatalogo({ medio: "manga", orden: "popularity:asc", pagina: paginaActual }),
           ]).then(([animeRes, mangaRes]) => {
-            const combined = [...animeRes.items, ...mangaRes.items]
-              .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+            const combined = [
+              ...animeRes.items.map(i => ({ ...i, medio: "anime" as const })),
+              ...mangaRes.items.map(i => ({ ...i, medio: "manga" as const })),
+            ].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
             return {
               items: combined,
               ultimaPagina: Math.max(animeRes.ultimaPagina, mangaRes.ultimaPagina),
@@ -295,7 +297,7 @@ export default function BrowsePage() {
         <p className="py-20 text-center text-[#8b82a8]">No encontramos títulos con esos filtros.</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4 mb-10">
-          {items.map(item => <AnimeCard key={item.id} anime={item} medio={medioUrl} />)}
+          {items.map(item => <AnimeCard key={item.id} anime={item} medio={tipo === "popular-all" ? undefined : medioUrl} />)}
         </div>
       )}
 
