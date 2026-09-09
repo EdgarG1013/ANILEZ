@@ -110,7 +110,7 @@ export default function Listas({ medio, titulo }: { medio: Medio; titulo: string
           Aún no hay títulos en esta sección. Agrégalos desde el catálogo.
         </p>
       ) : (
-        <ul className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden divide-y divide-[#2a2140]">
+        <ul className="bg-[#110f1a] border border-[#2a2140] rounded-2xl divide-y divide-[#2a2140]">
           {visibles.map((e, i) => {
             const k = clave(e.medio, e.id);
             return (
@@ -132,7 +132,7 @@ export default function Listas({ medio, titulo }: { medio: Medio; titulo: string
               >
                 {manualActivo && (
                   <>
-                    <GripVertical className="w-4 h-4 text-[#8b82a8] shrink-0 cursor-grab" aria-hidden="true" />
+                    <GripVertical className="hidden sm:block w-4 h-4 text-[#8b82a8] shrink-0 cursor-grab" aria-hidden="true" />
                     <input
                       type="number"
                       min={1}
@@ -140,7 +140,7 @@ export default function Listas({ medio, titulo }: { medio: Medio; titulo: string
                       value={i + 1}
                       onChange={ev => moverA(e, Number(ev.target.value))}
                       aria-label={`Posición de ${e.titulo}`}
-                      className="w-14 h-9 bg-[#16141e] border border-[#2a2140] rounded-lg text-center text-sm text-[#f0eefa] focus:outline-none focus:border-[#946ed9]"
+                      className="hidden sm:block w-14 h-9 bg-[#16141e] border border-[#2a2140] rounded-lg text-center text-sm text-[#f0eefa] focus:outline-none focus:border-[#946ed9]"
                     />
                   </>
                 )}
@@ -148,10 +148,10 @@ export default function Listas({ medio, titulo }: { medio: Medio; titulo: string
                 <img
                   src={e.img}
                   alt={`Portada de ${e.titulo}`}
-                  className="w-12 h-16 object-cover rounded-lg bg-[#1c1928] shrink-0"
+                  className="w-18 h-[100px] sm:w-12 sm:h-16 object-cover rounded-lg bg-[#1c1928] shrink-0"
                 />
 
-                <div className="min-w-0 flex-1">
+                <div className="flex-1 min-w-0">
                   <Link
                     to={e.medio === "anime" ? `/panel/anime/${e.id}` : `/panel/manga/${e.id}`}
                     className="text-sm font-semibold truncate block hover:text-[#b08ee8] transition-colors"
@@ -162,61 +162,89 @@ export default function Listas({ medio, titulo }: { medio: Medio; titulo: string
                   <p className="text-xs text-[#8b82a8]">
                     {e.tipo} · guardado el {new Date(e.agregado).toLocaleDateString("es")}
                   </p>
+                  {/* Controles en móvil: debajo del título, alineados a la derecha */}
+                  <div className="flex items-center justify-end gap-2 mt-4 sm:hidden">
+                    <Select
+                      valor={e.estado}
+                      onChange={v => actualizar(e.medio, e.id, { estado: v as Estado })}
+                      opciones={estados}
+                      className="w-36"
+                    />
+                    <Link
+                      to={`/panel/estado/${e.medio}/${e.id}`}
+                      aria-label={`Estado de ${e.titulo}`}
+                      className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#b08ee8] hover:border-[#946ed9]/60 transition-colors"
+                    >
+                      <ClipboardList className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => actualizar(e.medio, e.id, { favorito: !e.favorito })}
+                      aria-label={e.favorito ? `Quitar ${e.titulo} de favoritos` : `Marcar ${e.titulo} como favorito`}
+                      aria-pressed={e.favorito}
+                      className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#f0eefa]"
+                    >
+                      <Heart className={`w-4 h-4 ${e.favorito ? "fill-[#946ed9] text-[#946ed9]" : ""}`} />
+                    </button>
+                    <button
+                      onClick={() => setAEliminar(e)}
+                      aria-label={`Eliminar ${e.titulo} de la lista`}
+                      className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#ff9aa8]"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
-                {/* Progreso */}
-                <div className="hidden sm:flex items-center gap-1">
-                  <button
-                    onClick={() => actualizar(e.medio, e.id, { progreso: Math.max(0, e.progreso - 1) })}
-                    aria-label={`Restar progreso a ${e.titulo}`}
-                    className="w-8 h-8 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa] flex items-center justify-center"
+                {/* Controles en desktop: a la derecha, en línea con el título */}
+                <div className="hidden sm:flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => actualizar(e.medio, e.id, { progreso: Math.max(0, e.progreso - 1) })}
+                      aria-label={`Restar progreso a ${e.titulo}`}
+                      className="w-8 h-8 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa] flex items-center justify-center"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-sm text-[#8b82a8] tabular-nums w-16 text-center">
+                      {e.progreso} / {e.total ?? "?"}
+                    </span>
+                    <button
+                      onClick={() => actualizar(e.medio, e.id, { progreso: e.progreso + 1 })}
+                      aria-label={`Sumar progreso a ${e.titulo}`}
+                      className="w-8 h-8 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa] flex items-center justify-center"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <Select
+                    valor={e.estado}
+                    onChange={v => actualizar(e.medio, e.id, { estado: v as Estado })}
+                    opciones={estados}
+                    className="w-36"
+                  />
+                  <Link
+                    to={`/panel/estado/${e.medio}/${e.id}`}
+                    aria-label={`Estado de ${e.titulo}`}
+                    className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#b08ee8] hover:border-[#946ed9]/60 transition-colors"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <ClipboardList className="w-4 h-4" />
+                  </Link>
+                  <button
+                    onClick={() => actualizar(e.medio, e.id, { favorito: !e.favorito })}
+                    aria-label={e.favorito ? `Quitar ${e.titulo} de favoritos` : `Marcar ${e.titulo} como favorito`}
+                    aria-pressed={e.favorito}
+                    className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#f0eefa]"
+                  >
+                    <Heart className={`w-4 h-4 ${e.favorito ? "fill-[#946ed9] text-[#946ed9]" : ""}`} />
                   </button>
-                  <span className="text-sm text-[#8b82a8] tabular-nums w-16 text-center">
-                    {e.progreso} / {e.total ?? "?"}
-                  </span>
                   <button
-                    onClick={() => actualizar(e.medio, e.id, { progreso: e.progreso + 1 })}
-                    aria-label={`Sumar progreso a ${e.titulo}`}
-                    className="w-8 h-8 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa] flex items-center justify-center"
+                    onClick={() => setAEliminar(e)}
+                    aria-label={`Eliminar ${e.titulo} de la lista`}
+                    className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#ff9aa8]"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-
-                {/* Estado */}
-                <Select
-                  valor={e.estado}
-                  onChange={v => actualizar(e.medio, e.id, { estado: v as Estado })}
-                  opciones={estados}
-                  className="w-36"
-                />
-
-                <Link
-                  to={`/panel/estado/${e.medio}/${e.id}`}
-                  aria-label={`Estado de ${e.titulo}`}
-                  className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#b08ee8] hover:border-[#946ed9]/60 transition-colors"
-                >
-                  <ClipboardList className="w-4 h-4" />
-                </Link>
-
-                <button
-                  onClick={() => actualizar(e.medio, e.id, { favorito: !e.favorito })}
-                  aria-label={e.favorito ? `Quitar ${e.titulo} de favoritos` : `Marcar ${e.titulo} como favorito`}
-                  aria-pressed={e.favorito}
-                  className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#f0eefa]"
-                >
-                  <Heart className={`w-4 h-4 ${e.favorito ? "fill-[#946ed9] text-[#946ed9]" : ""}`} />
-                </button>
-
-                <button
-                  onClick={() => setAEliminar(e)}
-                  aria-label={`Eliminar ${e.titulo} de la lista`}
-                  className="w-9 h-9 rounded-lg border border-[#2a2140] flex items-center justify-center text-[#8b82a8] hover:text-[#ff9aa8]"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </li>
             );
           })}
