@@ -84,9 +84,12 @@ export default function GruposPage() {
           {/* Portada con overlay */}
           <div className="sm:w-56 shrink-0 aspect-[16/9] sm:aspect-auto sm:min-h-[150px] bg-[#16141e] flex items-center justify-center relative group">
             {previewPortada ? (
-              <img src={previewPortada} alt="" className="w-full h-full object-cover" />
+              <img src={previewPortada} alt="subir portada" className="w-full h-full object-cover" />
             ) : (
-              <ImageIcon className="w-8 h-8 text-[#2a2140]" aria-hidden="true" />
+              <div className="flex flex-col items-center gap-1">
+                <ImageIcon className="w-8 h-8 text-[#2a2140]" aria-hidden="true" />
+                <span className="text-xs text-[#8b82a8] font-semibold mt-2">Click para subir portada</span>
+              </div>
             )}
             <input
               type="file"
@@ -166,7 +169,7 @@ export default function GruposPage() {
                 >
                   <div className="aspect-[16/7] bg-[#16141e] flex items-center justify-center">
                     {g.portadaUrl ? (
-                      <img src={g.portadaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={g.portadaUrl} alt="subir portada" className="w-full h-full object-cover" loading="lazy" />
                     ) : (
                       <ImageIcon className="w-8 h-8 text-[#2a2140]" aria-hidden="true" />
                     )}
