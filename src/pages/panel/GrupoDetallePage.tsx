@@ -46,12 +46,13 @@ export default function GrupoDetallePage() {
     if (!listaActiva && listas.length) setListaActiva(listas[0].id);
   }, [listaActiva, listas]);
 
-  // Sincronizar etiquetasInput cuando cambia el grupo o se abre edición
+  // Sincronizar etiquetasInput solo al entrar en modo edición
   useEffect(() => {
     if (editandoGrupo && grupo) {
       setEtiquetasInput(grupo.etiquetas.join(", "));
     }
-  }, [editandoGrupo, grupo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editandoGrupo]);
 
   const mapaEntradas = useMemo(
     () => new Map(entradas.map(e => [clave(e.medio, e.id), e])),
