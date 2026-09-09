@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import { FolderPlus, Trash2, Layers, Search, ImageIcon } from "lucide-react";
+import { FolderPlus, Trash2, Layers, Search, ImageIcon, ImagePlus } from "lucide-react";
 import { useBiblioteca, type Grupo } from "../../store/biblioteca";
 import DeleteConfirmModal from "../../components/compartido/DeleteConfirmModal";
 
@@ -13,16 +13,10 @@ export default function GruposPage() {
   const [etiquetas, setEtiquetas] = useState("");
   const [filtro, setFiltro] = useState("");
   const [aEliminar, setAEliminar] = useState<Grupo | null>(null);
-  const [ultimoGrupoId, setUltimoGrupoId] = useState<string | null>(null);
+  const [creando, setCreando] = useState(false);
+  const [previewPortada, setPreviewPortada] = useState<string | null>(null);
+  const archivoPendienteRef = useRef<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const prevGruposLengthRef = useRef(grupos.length);
-
-  useEffect(() => {
-    if (grupos.length > prevGruposLengthRef.current) {
-      setUltimoGrupoId(grupos[grupos.length - 1].id);
-    }
-    prevGruposLengthRef.current = grupos.length;
-  }, [grupos]);
 
   const visibles = grupos.filter(g => {
     const t = filtro.trim().toLowerCase();
@@ -36,6 +30,41 @@ export default function GruposPage() {
 
   const campo =
     "w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]";
+  const campoLabel = "block text-[11px] uppercase tracking-wider text-[#8b82a8] mb-1";
+
+  const handleCrearGrupo = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    if (!titulo.trim() || creando) return;
+    setCreando(true);
+    try {
+      const nuevoId = await crearGrupo({
+        titulo: titulo.trim(),
+        descripcion: descripcion.trim(),
+        portadaUrl: null,
+        etiquetas: etiquetas.split(",").map(e => e.trim()).filter(Boolean),
+      });
+      // Subir portada si había una imagen seleccionada
+      if (nuevoId && archivoPendienteRef.current) {
+        await subirPortadaGrupo(nuevoId, archivoPendienteRef.current);
+      }
+      setTitulo("");
+      setDescripcion("");
+      setEtiquetas("");
+      setPreviewPortada(null);
+      archivoPendienteRef.current = null;
+    } finally {
+      setCreando(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = e.target.files?.[0];
+    if (archivo) {
+      archivoPendienteRef.current = archivo;
+      const url = URL.createObjectURL(archivo);
+      setPreviewPortada(url);
+    }
+  };
 
   return (
     <div>
@@ -48,55 +77,69 @@ export default function GruposPage() {
 
       {/* Crear grupo */}
       <form
-        onSubmit={async ev => {
-          ev.preventDefault();
-          if (!titulo.trim()) return;
-          await crearGrupo({
-            titulo: titulo.trim(),
-            descripcion: descripcion.trim(),
-            portadaUrl: null,
-            etiquetas: etiquetas.split(",").map(e => e.trim()).filter(Boolean),
-          });
-          setTitulo(""); setDescripcion(""); setEtiquetas("");
-        }}
-        className="bg-[#110f1a] border border-[#2a2140] rounded-2xl p-4 mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+        onSubmit={handleCrearGrupo}
+        className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden mb-5"
       >
-        <div>
-          <label htmlFor="g-titulo" className="block text-xs text-[#8b82a8] mb-1">Título del grupo</label>
-          <input id="g-titulo" value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Clásicos de los 90" className={campo} />
-        </div>
-        <div>
-          <label htmlFor="g-desc" className="block text-xs text-[#8b82a8] mb-1">Descripción</label>
-          <input id="g-desc" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Lo que quiero revisitar" className={campo} />
-        </div>
-        <div>
-          <label htmlFor="g-portada" className="block text-xs text-[#8b82a8] mb-1">Portada</label>
-          <input type="file" id="g-portada" ref={fileInputRef} accept="image/*" className="hidden" onChange={async e => {
-            const archivo = e.target.files?.[0];
-            if (archivo && ultimoGrupoId) {
-              await subirPortadaGrupo(ultimoGrupoId, archivo);
-            }
-          }} />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={campo + " text-left cursor-pointer"}
-          >
-            Seleccionar imagen…
-          </button>
-        </div>
-        <div>
-          <label htmlFor="g-tags" className="block text-xs text-[#8b82a8] mb-1">Etiquetas (coma)</label>
-          <input id="g-tags" value={etiquetas} onChange={e => setEtiquetas(e.target.value)} placeholder="retro, shounen" className={campo} />
-        </div>
-        <div className="sm:col-span-2 xl:col-span-4 flex justify-end">
-          <button
-            type="submit"
-            className="h-10 px-5 rounded-xl text-sm font-semibold text-white flex items-center gap-2 w-full sm:w-auto justify-center"
-            style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)", fontFamily: "'Oxanium', sans-serif" }}
-          >
-            <FolderPlus className="w-4 h-4" /> Crear grupo
-          </button>
+        <div className="flex flex-col sm:flex-row">
+          {/* Portada con overlay */}
+          <div className="sm:w-56 shrink-0 aspect-[16/9] sm:aspect-auto sm:min-h-[150px] bg-[#16141e] flex items-center justify-center relative group">
+            {previewPortada ? (
+              <img src={previewPortada} alt="subir portada" className="w-full h-full object-cover" />
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <ImageIcon className="w-8 h-8 text-[#2a2140]" aria-hidden="true" />
+                <span className="text-xs text-[#8b82a8] font-semibold mt-2">Click para subir portada</span>
+              </div>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity"
+            >
+              <ImagePlus className="w-6 h-6 text-white" />
+              <span className="text-xs text-white font-semibold">Subir portada</span>
+            </button>
+          </div>
+
+          {/* Campos del formulario */}
+          <div className="flex-1 min-w-0 p-4 space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="g-titulo" className={campoLabel}>Título del grupo</label>
+                <input id="g-titulo" value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Clásicos de los 90" className={campo} />
+              </div>
+              <div>
+                <label htmlFor="g-desc" className={campoLabel}>Descripción</label>
+                <input id="g-desc" value={descripcion} onChange={e => setDescripcion(e.target.value)} placeholder="Lo que quiero revisitar" className={campo} />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="g-tags" className={campoLabel}>Etiquetas (separadas por coma)</label>
+              <input id="g-tags" value={etiquetas} onChange={e => setEtiquetas(e.target.value)} placeholder="retro, shounen" className={campo} />
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={!titulo.trim() || creando}
+                className="h-10 px-5 rounded-xl text-sm font-semibold text-white flex items-center gap-2 w-full sm:w-auto justify-center disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)", fontFamily: "'Oxanium', sans-serif" }}
+              >
+                {creando ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <FolderPlus className="w-4 h-4" />
+                )}
+                {creando ? "Creando…" : "Crear grupo"}
+              </button>
+            </div>
+          </div>
         </div>
       </form>
 
@@ -126,7 +169,7 @@ export default function GruposPage() {
                 >
                   <div className="aspect-[16/7] bg-[#16141e] flex items-center justify-center">
                     {g.portadaUrl ? (
-                      <img src={g.portadaUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      <img src={g.portadaUrl} alt="subir portada" className="w-full h-full object-cover" loading="lazy" />
                     ) : (
                       <ImageIcon className="w-8 h-8 text-[#2a2140]" aria-hidden="true" />
                     )}
