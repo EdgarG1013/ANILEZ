@@ -93,7 +93,7 @@ interface BibliotecaCtx {
   quitar: (medio: Medio, id: number) => Promise<void>;
   actualizar: (medio: Medio, id: number, cambios: Partial<Entrada>) => Promise<void>;
   reordenar: (medio: Medio, estado: Estado | "todos", clavesOrdenadas: string[]) => void;
-  crearGrupo: (g: Omit<Grupo, "id" | "creadoEn" | "listas">) => Promise<void>;
+  crearGrupo: (g: Omit<Grupo, "id" | "creadoEn" | "listas">) => Promise<string | null>;
   actualizarGrupo: (id: string, cambios: Partial<Grupo>) => Promise<void>;
   eliminarGrupo: (id: string) => Promise<void>;
   subirPortadaGrupo: (id: string, archivo: File) => Promise<string | null>;
@@ -376,16 +376,19 @@ export function BibliotecaProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const crearGrupo = useCallback(async (g: Omit<Grupo, "id" | "creadoEn" | "listas">) => {
+  const crearGrupo = useCallback(async (g: Omit<Grupo, "id" | "creadoEn" | "listas">): Promise<string | null> => {
     try {
       const nuevo = await crearGrupoApi({
         titulo: g.titulo,
         descripcion: g.descripcion,
         etiquetas: g.etiquetas,
       });
-      setGrupos(prev => [...prev, deBackendAGrupo(nuevo)]);
+      const grupoNuevo = deBackendAGrupo(nuevo);
+      setGrupos(prev => [...prev, grupoNuevo]);
+      return grupoNuevo.id;
     } catch (err) {
       console.error("Error creando grupo:", err);
+      return null;
     }
   }, []);
 
