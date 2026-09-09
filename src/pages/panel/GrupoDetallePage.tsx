@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  ArrowLeft, Plus, Trash2, GripVertical, X, Search, Loader2, Library, Globe, ImageIcon, Pencil, Check,
+  ArrowLeft, Plus, Trash2, GripVertical, X, ImageIcon, Pencil, Check,
+  ImagePlus,
 } from "lucide-react";
 import { useBiblioteca, type ListaPersonalizada } from "../../store/biblioteca";
-import { buscarCatalogo, type CatalogoItem, type Medio } from "../../api/catalogoService";
+import type { Medio } from "../../api/catalogoService";
 import DeleteConfirmModal from "../../components/compartido/DeleteConfirmModal";
+import AgregarTitulosModal from "../../components/panel/AgregarTitulosModal";
 import Select from "../../components/ui/Select";
 
 // ─── Detalle de un grupo: sus listas personalizadas, ordenables ──────────────
@@ -23,18 +25,19 @@ const ORDENES: { valor: Orden; etiqueta: string }[] = [
 export default function GrupoDetallePage() {
   const { id } = useParams();
   const { grupos, entradas, clave, actualizarGrupo, subirPortadaGrupo, crearListaGrupo, eliminarListaGrupo, actualizarListaGrupo, agregarItemGrupo, eliminarItemGrupo, reordenarItemsGrupo } = useBiblioteca();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const grupo = grupos.find(g => g.id === id);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [listaActiva, setListaActiva] = useState<string | null>(null);
   const [orden, setOrden] = useState<Orden>("manual");
-  const [editando, setEditando] = useState(false);
-  const [fuente, setFuente] = useState<"biblioteca" | "externo">("biblioteca");
-  const [busqueda, setBusqueda] = useState("");
-  const [medioBusqueda, setMedioBusqueda] = useState<Medio>("anime");
-  const [resultados, setResultados] = useState<CatalogoItem[]>([]);
-  const [cargando, setCargando] = useState(false);
+  const [editandoGrupo, setEditandoGrupo] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [abiertoModalAgregar, setAbiertoModalAgregar] = useState(false);
   const [aEliminarLista, setAEliminarLista] = useState<ListaPersonalizada | null>(null);
+  const [aEliminarItem, setAEliminarItem] = useState<{ medio: Medio; tenraiId: string; titulo: string } | null>(null);
+
+  // Estado local para etiquetas (para evitar bug de parseo con coma final)
+  const [etiquetasInput, setEtiquetasInput] = useState("");
 
   const listas = grupo?.listas ?? [];
   const activa = listas.find(l => l.id === listaActiva) ?? listas[0] ?? null;
@@ -43,19 +46,12 @@ export default function GrupoDetallePage() {
     if (!listaActiva && listas.length) setListaActiva(listas[0].id);
   }, [listaActiva, listas]);
 
-  // Búsqueda en el catálogo externo (Jikan) con debounce
+  // Sincronizar etiquetasInput cuando cambia el grupo o se abre edición
   useEffect(() => {
-    if (fuente !== "externo" || busqueda.trim().length < 3) { setResultados([]); return; }
-    const t = setTimeout(async () => {
-      setCargando(true);
-      try {
-        const r = await buscarCatalogo({ medio: medioBusqueda, q: busqueda.trim(), pagina: 1 });
-        setResultados(r.items.slice(0, 12));
-      } catch { setResultados([]); }
-      setCargando(false);
-    }, 500);
-    return () => clearTimeout(t);
-  }, [busqueda, medioBusqueda, fuente]);
+    if (editandoGrupo && grupo) {
+      setEtiquetasInput(grupo.etiquetas.join(", "));
+    }
+  }, [editandoGrupo, grupo]);
 
   const mapaEntradas = useMemo(
     () => new Map(entradas.map(e => [clave(e.medio, e.id), e])),
@@ -119,11 +115,8 @@ export default function GrupoDetallePage() {
 
   const clavesActivas = useMemo(() => new Set(activa?.items.map(i => i.clave) ?? []), [activa]);
 
-  const disponibles = entradas
-    .filter(e => !clavesActivas.has(clave(e.medio, e.id)))
-    .filter(e => !busqueda.trim() || e.titulo.toLowerCase().includes(busqueda.trim().toLowerCase()));
-
   const campo = "w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]";
+  const campoLabel = "text-[11px] uppercase tracking-wider text-[#8b82a8] mb-1";
 
   return (
     <div>
@@ -134,34 +127,67 @@ export default function GrupoDetallePage() {
       {/* Cabecera del grupo */}
       <header className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden mb-5">
         <div className="flex flex-col sm:flex-row">
-          <div className="sm:w-56 shrink-0 aspect-[16/9] sm:aspect-auto sm:min-h-[150px] bg-[#16141e] flex items-center justify-center">
+          <div className="sm:w-56 shrink-0 aspect-[16/9] sm:aspect-auto sm:min-h-[150px] bg-[#16141e] flex items-center justify-center relative group">
             {grupo.portadaUrl
               ? <img src={grupo.portadaUrl} alt="" className="w-full h-full object-cover" />
               : <ImageIcon className="w-8 h-8 text-[#2a2140]" aria-hidden="true" />}
-          </div>
-          <div className="flex-1 min-w-0 p-4">
-            {editando ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input value={grupo.titulo} onChange={e => actualizarGrupo(grupo.id, { titulo: e.target.value })} aria-label="Título del grupo" className={campo} />
-                <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={async e => {
-                  const archivo = e.target.files?.[0];
-                  if (archivo && grupo) {
-                    await subirPortadaGrupo(grupo.id, archivo);
-                  }
-                }} />
+            {editandoGrupo && (
+              <>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async e => {
+                    const archivo = e.target.files?.[0];
+                    if (archivo && grupo) await subirPortadaGrupo(grupo.id, archivo);
+                  }}
+                />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className={campo + " text-left cursor-pointer"}
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity"
                 >
-                  {grupo.portadaUrl ? "Cambiar portada…" : "Subir portada…"}
+                  <ImagePlus className="w-6 h-6 text-white" />
+                  <span className="text-xs text-white font-semibold">Cambiar portada</span>
                 </button>
-                <input value={grupo.descripcion} onChange={e => actualizarGrupo(grupo.id, { descripcion: e.target.value })} placeholder="Descripción" aria-label="Descripción del grupo" className={campo} />
-                <input
-                  value={grupo.etiquetas.join(", ")}
-                  onChange={e => actualizarGrupo(grupo.id, { etiquetas: e.target.value.split(",").map(t => t.trim()).filter(Boolean) })}
-                  placeholder="Etiquetas (coma)" aria-label="Etiquetas del grupo" className={campo}
-                />
+              </>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 p-4">
+            {editandoGrupo ? (
+              <div className="space-y-3">
+                <div>
+                  <label className={campoLabel}>Título</label>
+                  <input value={grupo.titulo} onChange={e => actualizarGrupo(grupo.id, { titulo: e.target.value })} aria-label="Título del grupo" className={campo} />
+                </div>
+                <div>
+                  <label className={campoLabel}>Descripción</label>
+                  <input value={grupo.descripcion} onChange={e => actualizarGrupo(grupo.id, { descripcion: e.target.value })} placeholder="Descripción del grupo" aria-label="Descripción del grupo" className={campo} />
+                </div>
+                <div>
+                  <label className={campoLabel}>Etiquetas (separadas por coma)</label>
+                  <input
+                    value={etiquetasInput}
+                    onChange={e => {
+                      const raw = e.target.value;
+                      setEtiquetasInput(raw);
+                      const partes = raw.split(",").map(t => t.trim());
+                      const etiquetas = raw.endsWith(",")
+                        ? partes.filter(Boolean)
+                        : partes.slice(0, -1).filter(Boolean);
+                      actualizarGrupo(grupo.id, { etiquetas });
+                    }}
+                    placeholder="ej: shonen, accion, clasico"
+                    aria-label="Etiquetas del grupo"
+                    className={campo}
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {grupo.etiquetas.map(t => (
+                      <span key={t} className="text-[11px] px-2 py-0.5 rounded-md bg-[#946ed9]/15 text-[#b08ee8] border border-[#946ed9]/30">#{t}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <>
@@ -179,10 +205,10 @@ export default function GrupoDetallePage() {
           </div>
           <div className="p-4 sm:pl-0">
             <button
-              onClick={() => setEditando(v => !v)}
+              onClick={() => setEditandoGrupo(v => !v)}
               className="h-9 px-3 rounded-xl text-xs font-semibold border border-[#2a2140] text-[#f0eefa] hover:border-[#946ed9]/60 flex items-center gap-1.5 w-full sm:w-auto justify-center"
             >
-              {editando ? <><Check className="w-3.5 h-3.5" /> Listo</> : <><Pencil className="w-3.5 h-3.5" /> Editar</>}
+              {editandoGrupo ? <><Check className="w-3.5 h-3.5" /> Listo</> : <><Pencil className="w-3.5 h-3.5" /> Editar</>}
             </button>
           </div>
         </div>
@@ -193,7 +219,7 @@ export default function GrupoDetallePage() {
         {listas.map(l => (
           <button
             key={l.id}
-            onClick={() => setListaActiva(l.id)}
+            onClick={() => { setListaActiva(l.id); setModoEdicion(false); }}
             aria-current={activa?.id === l.id}
             className={`h-10 px-4 rounded-xl text-sm font-semibold border transition-colors ${
               activa?.id === l.id ? "bg-[#946ed9] border-[#946ed9] text-white" : "bg-[#16141e] border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa]"
@@ -215,44 +241,75 @@ export default function GrupoDetallePage() {
         <p className="py-16 text-center text-[#8b82a8]">Este grupo aún no tiene listas. Crea la primera arriba.</p>
       ) : (
         <>
-          {/* Controles de la lista activa */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
-            <input
-              value={activa.nombre}
-              onChange={e => actualizarListaGrupo(activa.id, { nombre: e.target.value })}
-              aria-label="Nombre de la lista"
-              className="flex-1 h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm font-semibold focus:outline-none focus:border-[#946ed9]"
-              style={{ fontFamily: "'Oxanium', sans-serif" }}
-            />
-            <Select valor={orden} onChange={v => setOrden(v as Orden)} opciones={ORDENES} className="sm:w-56" />
-            <button
-              onClick={() => setAEliminarLista(activa)}
-              aria-label={`Eliminar lista ${activa.nombre}`}
-              className="h-10 px-3 rounded-xl border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] flex items-center justify-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" /> <span className="sm:hidden">Eliminar lista</span>
-            </button>
+          {/* Barra de controles de la lista */}
+          <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center">
+            {/* Fila superior en mobile: orden + nombre */}
+            <div className="flex gap-2 sm:flex-1 sm:items-center">
+              <Select valor={orden} onChange={v => setOrden(v as Orden)} opciones={ORDENES} className="sm:w-56 shrink-0" />
+              {modoEdicion ? (
+                <input
+                  value={activa.nombre}
+                  onChange={e => actualizarListaGrupo(activa.id, { nombre: e.target.value })}
+                  aria-label="Nombre de la lista"
+                  className="flex-1 min-w-0 h-10 bg-[#16141e] border border-[#946ed9] rounded-xl px-3 text-sm font-semibold focus:outline-none focus:border-[#946ed9]"
+                  style={{ fontFamily: "'Oxanium', sans-serif" }}
+                />
+              ) : (
+                <span
+                  className="flex-1 min-w-0 h-10 flex items-center px-1 text-sm font-semibold text-[#f0eefa] truncate"
+                  style={{ fontFamily: "'Oxanium', sans-serif" }}
+                >
+                  {activa.nombre}
+                </span>
+              )}
+            </div>
+            {/* Fila inferior en mobile: botones de acción */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAbiertoModalAgregar(true)}
+                className="flex-1 sm:flex-none h-10 px-3 rounded-xl border border-[#2a2140] text-[#946ed9] hover:border-[#946ed9]/60 flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" /> Agregar
+              </button>
+
+              <button
+                onClick={() => setModoEdicion(v => !v)}
+                className="flex-1 sm:flex-none h-10 px-3 rounded-xl border border-[#2a2140] text-[#f0eefa] hover:border-[#946ed9]/60 flex items-center justify-center gap-2"
+              >
+                {modoEdicion ? <><Check className="w-4 h-4" /> Listo</> : <><Pencil className="w-4 h-4" /> Editar</>}
+              </button>
+
+              {modoEdicion && (
+                <button
+                  onClick={() => setAEliminarLista(activa)}
+                  aria-label={`Eliminar lista ${activa.nombre}`}
+                  className="flex-1 sm:flex-none h-10 px-3 rounded-xl border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> <span className="sm:hidden">Eliminar</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Filas */}
           {items.length === 0 ? (
-            <p className="py-12 text-center text-[#8b82a8]">Lista vacía. Agrega títulos abajo.</p>
+            <p className="py-12 text-center text-[#8b82a8]">Lista vacía. Agrega títulos con el botón de arriba.</p>
           ) : (
             <ul className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden divide-y divide-[#2a2140] mb-5">
               {items.map((it, i) => (
                 <li
                   key={it.clave}
-                  draggable={orden === "manual"}
+                  draggable={modoEdicion && orden === "manual"}
                   onDragStart={ev => ev.dataTransfer.setData("text/plain", it.clave)}
-                  onDragOver={ev => orden === "manual" && ev.preventDefault()}
+                  onDragOver={ev => modoEdicion && orden === "manual" && ev.preventDefault()}
                   onDrop={ev => {
-                    if (orden !== "manual") return;
+                    if (!modoEdicion || orden !== "manual") return;
                     ev.preventDefault();
                     mover(ev.dataTransfer.getData("text/plain"), i + 1);
                   }}
                   className="flex items-center gap-3 p-3 hover:bg-[#16141e] transition-colors"
                 >
-                  {orden === "manual" && (
+                  {modoEdicion && orden === "manual" && (
                     <>
                       <GripVertical className="hidden sm:block w-4 h-4 text-[#8b82a8] shrink-0 cursor-grab" aria-hidden="true" />
                       <input
@@ -278,114 +335,34 @@ export default function GrupoDetallePage() {
                       {it.esExterno ? " · fuera de mis listas" : ""}
                     </p>
                   </div>
-                  <button
-                    onClick={() => eliminarItemGrupo(activa.id, it.medio, it.tenraiId)}
-                    aria-label={`Quitar ${it.titulo} de ${activa.nombre}`}
-                    className="w-9 h-9 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] flex items-center justify-center shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {modoEdicion && (
+                    <button
+                      onClick={() => setAEliminarItem({ medio: it.medio, tenraiId: it.tenraiId, titulo: it.titulo })}
+                      aria-label={`Quitar ${it.titulo} de ${activa.nombre}`}
+                      className="w-9 h-9 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] flex items-center justify-center shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-
-          {/* Agregar títulos */}
-          <section className="bg-[#110f1a] border border-[#2a2140] rounded-2xl p-4">
-            <h2 className="text-sm font-semibold mb-3" style={{ fontFamily: "'Oxanium', sans-serif" }}>
-              Agregar títulos a "{activa.nombre}"
-            </h2>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {([["biblioteca", "Mi biblioteca", Library], ["externo", "Buscar en el catálogo", Globe]] as const).map(([v, label, Icono]) => (
-                <button
-                  key={v}
-                  onClick={() => { setFuente(v); setBusqueda(""); }}
-                  className={`h-9 px-3 rounded-xl text-xs font-semibold border flex items-center gap-1.5 ${
-                    fuente === v ? "bg-[#946ed9] border-[#946ed9] text-white" : "bg-[#16141e] border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa]"
-                  }`}
-                >
-                  <Icono className="w-3.5 h-3.5" /> {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 mb-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-[#8b82a8] absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
-                <label htmlFor="buscar-item" className="sr-only">Buscar títulos</label>
-                <input
-                  id="buscar-item" value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                  placeholder={fuente === "biblioteca" ? "Filtrar mi biblioteca…" : "Buscar anime o manga (mín. 3 letras)…"}
-                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl pl-9 pr-3 text-sm focus:outline-none focus:border-[#946ed9]"
-                />
-              </div>
-              {fuente === "externo" && (
-                <Select
-                  valor={medioBusqueda}
-                  onChange={v => setMedioBusqueda((v || "anime") as Medio)}
-                  opciones={[{ valor: "anime", etiqueta: "Anime" }, { valor: "manga", etiqueta: "Manga" }]}
-                  className="sm:w-36"
-                />
-              )}
-            </div>
-
-            {fuente === "biblioteca" ? (
-              disponibles.length === 0 ? (
-                <p className="text-sm text-[#8b82a8]">No hay títulos disponibles en tu biblioteca.</p>
-              ) : (
-                <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 max-h-80 overflow-y-auto">
-                  {disponibles.map(e => {
-                    const k = clave(e.medio, e.id);
-                    return (
-                      <li key={k}>
-                        <button
-                          onClick={() => agregarItem(e.medio, String(e.id))}
-                          className="w-full flex items-center gap-2 bg-[#16141e] border border-[#2a2140] rounded-xl p-2 text-left hover:border-[#946ed9]/60"
-                        >
-                          <img src={e.img} alt="" className="w-8 h-11 object-cover rounded bg-[#1c1928]" loading="lazy" />
-                          <span className="flex-1 min-w-0">
-                            <span className="block text-sm truncate">{e.titulo}</span>
-                            <span className="block text-[11px] uppercase text-[#8b82a8]">{e.medio}</span>
-                          </span>
-                          <Plus className="w-4 h-4 text-[#946ed9] shrink-0" aria-hidden="true" />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )
-            ) : cargando ? (
-              <p className="flex items-center gap-2 text-sm text-[#8b82a8]"><Loader2 className="w-4 h-4 animate-spin" /> Buscando…</p>
-            ) : resultados.length === 0 ? (
-              <p className="text-sm text-[#8b82a8]">Escribe al menos 3 letras para buscar títulos que no están en tus listas.</p>
-            ) : (
-              <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3 max-h-80 overflow-y-auto">
-                {resultados.map(r => {
-                  const k = `${medioBusqueda}:${r.id}`;
-                  const ya = clavesActivas.has(k);
-                  return (
-                    <li key={k}>
-                      <button
-                        disabled={ya}
-                        onClick={() => agregarItem(medioBusqueda, String(r.id), r as unknown as Record<string, unknown>)}
-                        className="w-full flex items-center gap-2 bg-[#16141e] border border-[#2a2140] rounded-xl p-2 text-left hover:border-[#946ed9]/60 disabled:opacity-40"
-                      >
-                        <img src={r.img} alt="" className="w-8 h-11 object-cover rounded bg-[#1c1928]" loading="lazy" />
-                        <span className="flex-1 min-w-0">
-                          <span className="block text-sm truncate">{r.title}</span>
-                          <span className="block text-[11px] uppercase text-[#8b82a8]">{medioBusqueda} · {r.type}</span>
-                        </span>
-                        {ya ? <Check className="w-4 h-4 text-[#8b82a8] shrink-0" /> : <Plus className="w-4 h-4 text-[#946ed9] shrink-0" />}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
         </>
       )}
 
+      {/* Modal Agregar Títulos */}
+      <AgregarTitulosModal
+        isOpen={abiertoModalAgregar}
+        onClose={() => setAbiertoModalAgregar(false)}
+        listaNombre={activa?.nombre ?? ""}
+        entradas={entradas}
+        clavesActivas={clavesActivas}
+        clave={clave}
+        onAgregarItem={agregarItem}
+      />
+
+      {/* Modal confirmar eliminar lista */}
       <DeleteConfirmModal
         isOpen={aEliminarLista !== null}
         onClose={() => setAEliminarLista(null)}
@@ -394,10 +371,25 @@ export default function GrupoDetallePage() {
             eliminarListaGrupo(aEliminarLista.id);
             setListaActiva(null);
             setAEliminarLista(null);
+            setModoEdicion(false);
           }
         }}
         title={aEliminarLista?.nombre ?? ""}
         itemLabel="lista"
+      />
+
+      {/* Modal confirmar eliminar item */}
+      <DeleteConfirmModal
+        isOpen={aEliminarItem !== null}
+        onClose={() => setAEliminarItem(null)}
+        onConfirm={() => {
+          if (aEliminarItem && activa) {
+            eliminarItemGrupo(activa.id, aEliminarItem.medio, aEliminarItem.tenraiId);
+            setAEliminarItem(null);
+          }
+        }}
+        title={aEliminarItem?.titulo ?? ""}
+        itemLabel="título"
       />
     </div>
   );
