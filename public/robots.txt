@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /explorar
+Allow: /anime/
+Allow: /manga/
+
+Disallow: /panel/
+Disallow: /iniciar-sesion
+Disallow: /registro
+Disallow: /recuperar-password
+Disallow: /restablecer-password
+Disallow: /verificar-email
+Disallow: /auth/
+
+Sitemap: https://anilez.site/sitemap.xml

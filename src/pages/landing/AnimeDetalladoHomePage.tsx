@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star, Tv } from "lucide-react";
 import { obtenerDetalleAnime, type AnimeDetalle } from "../../api/catalogoService";
@@ -12,6 +12,7 @@ import AnimeStreaming from "../../components/anime/AnimeStreaming";
 import AnimeOfficialSite from "../../components/anime/AnimeOfficialSite";
 import AnimeHorizontalCarousel from "../../components/anime/AnimeHorizontalCarousel";
 import DetalleSkeleton from "../../components/compartido/DetalleSkeleton";
+import SEOHead from "../../components/compartido/SEOHead";
 
 export default function AnimeDetailsPage() {
   const { id } = useParams();
@@ -34,6 +35,28 @@ export default function AnimeDetailsPage() {
     if (window.history.length > 1) navigate(-1);
     else navigate("/");
   };
+
+  const jsonLd = useMemo(() => {
+    if (!anime) return undefined;
+    return {
+      "@context": "https://schema.org",
+      "@type": "TVSeries",
+      name: anime.titulo,
+      alternateTitle: anime.tituloIngles,
+      description: anime.sinopsis,
+      image: anime.img,
+      genre: anime.generos,
+      datePublished: anime.year ? `${anime.year}-01-01` : undefined,
+      aggregateRating: anime.score ? {
+        "@type": "AggregateRating",
+        ratingValue: String(anime.score),
+        bestRating: "10",
+        ratingCount: String(anime.votos),
+      } : undefined,
+      contentRating: anime.clasificacion,
+      url: `https://anilez.site/anime/${id}`,
+    };
+  }, [anime, id]);
 
   if (cargando) {
     return <DetalleSkeleton />;
@@ -66,6 +89,14 @@ export default function AnimeDetailsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        titulo={`${anime.titulo} — ANILEZ`}
+        descripcion={anime.sinopsis?.slice(0, 160) ?? `Información de ${anime.titulo}`}
+        url={`https://anilez.site/anime/${id}`}
+        imagen={anime.img}
+        jsonLd={jsonLd}
+      />
+
       <AnimeHeroBanner anime={anime} onVolver={handleVolver} />
 
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-10">
