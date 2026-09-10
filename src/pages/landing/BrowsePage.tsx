@@ -11,6 +11,7 @@ import {
   type Medio, type Temporada,
 } from "../../api/catalogoService";
 import CatalogoError from "../../components/compartido/CatalogoError";
+import SEOHead from "../../components/compartido/SEOHead";
 
 // ─── Navegador de anime (Browse) ─────────────────────────────────────────────
 // Lee la URL (?type=..., ?genre=..., ?year=...&season=...) y muestra una grilla
@@ -211,6 +212,23 @@ export default function BrowsePage() {
 
   return (
     <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-10">
+      <SEOHead
+        titulo={`${titulo} — ANILEZ`}
+        descripcion={`${subtitulo}. Explora el catálogo de anime y manga en ANILEZ.`}
+        url={`https://anilez.site/explorar${tipo !== "popular" ? `?type=${tipo}` : ""}`}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: `${titulo} — ANILEZ`,
+          description: subtitulo,
+          url: `https://anilez.site/explorar`,
+          isPartOf: {
+            "@type": "WebSite",
+            name: "ANILEZ",
+            url: "https://anilez.site",
+          },
+        }}
+      />
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm mb-5">
         <button onClick={() => navigate("/")} className="text-[#8b82a8] hover:text-[#f0eefa] transition-colors">

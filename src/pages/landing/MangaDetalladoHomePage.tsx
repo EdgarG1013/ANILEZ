@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Star } from "lucide-react";
 import { obtenerDetalleManga, type MangaDetalle } from "../../api/catalogoService";
@@ -8,6 +8,7 @@ import AnimeCharacters from "../../components/anime/AnimeCharacters";
 import AnimeOfficialSite from "../../components/anime/AnimeOfficialSite";
 import AnimeHorizontalCarousel from "../../components/anime/AnimeHorizontalCarousel";
 import DetalleSkeleton from "../../components/compartido/DetalleSkeleton";
+import SEOHead from "../../components/compartido/SEOHead";
 
 function InfoFila({ label, value }: { label: string; value: string }) {
   return (
@@ -40,6 +41,32 @@ export default function MangaDetalladoPage() {
     else navigate("/");
   };
 
+  const jsonLd = useMemo(() => {
+    if (!manga) return undefined;
+    return {
+      "@context": "https://schema.org",
+      "@type": "Book",
+      name: manga.titulo,
+      alternateTitle: manga.tituloIngles || manga.tituloJapones,
+      description: manga.sinopsis,
+      image: manga.img,
+      genre: manga.generos,
+      datePublished: manga.year ? `${manga.year}-01-01` : undefined,
+      author: manga.autores.length > 0 ? {
+        "@type": "Person",
+        name: manga.autores[0],
+      } : undefined,
+      aggregateRating: manga.score ? {
+        "@type": "AggregateRating",
+        ratingValue: String(manga.score),
+        bestRating: "10",
+        ratingCount: String(manga.votos),
+      } : undefined,
+      inLanguage: "ja",
+      url: `https://anilez.site/manga/${id}`,
+    };
+  }, [manga, id]);
+
   if (cargando) {
     return <DetalleSkeleton />;
   }
@@ -66,6 +93,14 @@ export default function MangaDetalladoPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        titulo={`${manga.titulo} — ANILEZ`}
+        descripcion={manga.sinopsis?.slice(0, 160) ?? `Información de ${manga.titulo}`}
+        url={`https://anilez.site/manga/${id}`}
+        imagen={manga.img}
+        jsonLd={jsonLd}
+      />
+
       <MangaHeroBanner manga={manga} onVolver={handleVolver} />
 
       <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-10">
