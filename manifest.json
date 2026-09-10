@@ -1,0 +1,21 @@
+{
+  "name": "ANILEZ",
+  "short_name": "ANILEZ",
+  "description": "ANILEZ: Explora el catálogo completo de anime y manga. Organiza tu biblioteca, sigue tu progreso y descubre nuevos títulos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#110f1a",
+  "theme_color": "#946ed9",
+  "icons": [
+    {
+      "src": "/ICON-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/ICON-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
