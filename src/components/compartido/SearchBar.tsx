@@ -40,8 +40,8 @@ export default function SearchBar({ onNavegacion }: { onNavegacion?: () => void 
       setCargando(true);
       const q = texto.trim();
       const [anime, manga] = await Promise.allSettled([
-        buscarCatalogo({ medio: "anime", q, sfw: true }),
-        buscarCatalogo({ medio: "manga", q, sfw: true }),
+        buscarCatalogo({ medio: "anime", q, sfw: false }), // true para filtrar contenido NSFW, false para mostrar todo
+        buscarCatalogo({ medio: "manga", q, sfw: false }),
       ]);
 
       const res: Sugerencia[] = [];
