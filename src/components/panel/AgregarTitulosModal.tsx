@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Search, Loader2, Plus, Check, X, Library, Globe } from "lucide-react";
 import { buscarCatalogo, type CatalogoItem, type Medio } from "../../api/catalogoService";
 import type { Entrada } from "../../store/biblioteca";
+import { useBiblioteca } from "../../store/biblioteca";
 import Select from "../ui/Select";
 
 // ─── Modal para agregar títulos a una lista personalizada ────────────────────
@@ -25,6 +26,7 @@ export default function AgregarTitulosModal({
   clave,
   onAgregarItem,
 }: AgregarTitulosModalProps) {
+  const { preferencias } = useBiblioteca();
   const [fuente, setFuente] = useState<"biblioteca" | "externo">("biblioteca");
   const [busqueda, setBusqueda] = useState("");
   const [medioBusqueda, setMedioBusqueda] = useState<Medio>("anime");
@@ -57,7 +59,7 @@ export default function AgregarTitulosModal({
     const t = setTimeout(async () => {
       setCargando(true);
       try {
-        const r = await buscarCatalogo({ medio: medioBusqueda, q: busqueda.trim(), pagina: 1 });
+        const r = await buscarCatalogo({ medio: medioBusqueda, q: busqueda.trim(), pagina: 1, sfw: preferencias.sfw });
         setResultados(r.items.slice(0, 12));
       } catch { setResultados([]); }
       setCargando(false);
