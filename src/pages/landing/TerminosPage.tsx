@@ -11,7 +11,7 @@ export default function TerminosPage() {
           Términos de <span className="text-[#946ed9]">Servicio</span>
         </>
       }
-      intro="ANILEZ es un proyecto hecho por gusto, en el tiempo libre de una sola persona. Estos términos existen para dejar claras las reglas del juego y protegerte (y protegernos) de malentendidos."
+      intro="ANILEZ es un proyecto hecho por gusto, en el tiempo libre de una sola . Estos términos existen para dejar claras las reglas del juego y protegerte (y protegernos) de malentendidos."
       ultimaActualizacion="13 de septiembre de 2026"
     >
       <Seccion numero="01" titulo="Naturaleza del proyecto">
@@ -143,8 +143,8 @@ export default function TerminosPage() {
 
       <Seccion numero="08" titulo="Contacto">
         <Parrafo>
-          Cualquier duda sobre estos términos puede dirigirse al correo de contacto del proyecto
-          publicado en el repositorio oficial de ANILEZ.
+          Cualquier duda sobre estos términos puede dirigirse al correo <strong><a href="mailto:contact@anilez.com" className="text-[#f0eefa]">contact@anilez.com</a></strong> O 
+          puedes contactarnos a través del repositorio oficial de <strong><a href="https://github.com/EdgarG1013/" className="text-[#f0eefa]">ANILEZ</a></strong>.
         </Parrafo>
       </Seccion>
     </LegalLayout>

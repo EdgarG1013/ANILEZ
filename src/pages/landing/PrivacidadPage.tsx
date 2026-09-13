@@ -104,7 +104,7 @@ export default function PrivacidadPage() {
         <Parrafo>
           La base de datos de contenido de ANILEZ (títulos, sinopsis, carátulas, fechas de
           estreno y demás información sobre anime y manga) se alimenta dinámicamente de la{" "}
-          <strong className="text-[#f0eefa]">API de Tenrai</strong>. Las consultas se realizan para
+          <strong className="text-[#f0eefa]"><a href="https://tenrai.org" className="text-[#946ed9] hover:text-[#b08ee8] underline underline-offset-2">API de Tenrai</a></strong>. Las consultas se realizan para
           mostrar información en pantalla y no están asociadas a tu identidad personal.
         </Parrafo>
 
@@ -135,7 +135,7 @@ export default function PrivacidadPage() {
       <Seccion numero="06" titulo="Seguridad de los datos">
         <Parrafo>
           Aplicamos buenas prácticas para proteger tu información: las contraseñas se almacenan de
-          forma cifrada (nunca en texto plano), las comunicaciones viajan por conexiones seguras y
+          forma cifrada, las comunicaciones viajan por conexiones seguras y
           el acceso a la base de datos está restringido. Aun así, ningún sistema es infalible, por
           lo que también te pedimos usar una contraseña única y no compartirla con nadie.
         </Parrafo>
@@ -150,7 +150,9 @@ export default function PrivacidadPage() {
         <Lista
           items={[
             "Ir a Configuración dentro de tu panel y usar la opción de eliminar cuenta, o",
-            "Escribirnos un correo solicitando la eliminación, y la procesaremos manualmente.",
+            <>
+            Escribirnos un correo a <strong><a href="mailto:contact@anilez.com" className="text-[#f0eefa]">contact@anilez.com</a></strong> solicitando la eliminación, y la procesaremos manualmente.
+            </>
           ]}
         />
         <Parrafo>
@@ -163,8 +165,8 @@ export default function PrivacidadPage() {
       <Seccion numero="08" titulo="Contacto">
         <Parrafo>
           Si tienes dudas sobre esta política, cómo tratamos tus datos o quieres ejercer cualquier
-          derecho sobre ellos, escríbenos al correo de contacto del proyecto publicado en el
-          repositorio oficial de ANILEZ.
+          derecho sobre ellos, escríbenos al correo <strong><a href="mailto:contact@anilez.com" className="text-[#f0eefa]">contact@anilez.com</a></strong> O 
+          contactanos a través del repositorio oficial de <strong><a href="https://github.com/EdgarG1013/" className="text-[#f0eefa]">ANILEZ</a></strong>.
         </Parrafo>
       </Seccion>
     </LegalLayout>
