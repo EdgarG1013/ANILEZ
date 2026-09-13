@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Upload, Download, User, KeyRound, FileJson, FileText, ShieldAlert, Camera, Mail, CheckCircle, AlertCircle } from "lucide-react";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { Upload, Download, User, KeyRound, FileJson, FileText, ShieldAlert, Camera, Mail, CheckCircle, AlertCircle, Lock } from "lucide-react";
 import { useBiblioteca, type Entrada, type Grupo } from "../../store/biblioteca";
 import { useAuth } from "../../store/auth";
 import api from "../../api/axios";
@@ -10,8 +10,9 @@ import {
   establecerContrasena,
   obtenerPerfil,
 } from "../../api/authService";
+import { PasswordField } from "../../components/ui/FormFields";
 
-// ─── Configuración de cuenta, importación y exportación ──────────────────────
+// ─── Utilidades ──────────────────────────────────────────────────────────────
 
 type NestError = {
   response?: {
@@ -36,49 +37,104 @@ function extraerMensajeError(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function evaluarFortaleza(pw: string): { largo: boolean; mayuscula: boolean; minuscula: boolean; digito: boolean } {
+  return {
+    largo: pw.length >= 8,
+    mayuscula: /[A-Z]/.test(pw),
+    minuscula: /[a-z]/.test(pw),
+    digito: /\d/.test(pw),
+  };
+}
+
+// ─── Componente auxiliar: requisito de contraseña ────────────────────────────
+
+function Requisito({ texto, ok }: { texto: string; ok: boolean }) {
+  return (
+    <span className={`text-[11px] flex items-center gap-1 mt-6 transition-colors ${ok ? "text-emerald-400" : "text-[#5a5272]"}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ok ? "bg-emerald-400" : "bg-[#5a5272]"}`} />
+      {texto}
+    </span>
+  );
+}
+
+// ─── Componente auxiliar: mensaje de sección ─────────────────────────────────
+
+function MensajeSeccion({ msg }: { msg: { texto: string; tipo: "exito" | "error" } | null }) {
+  if (!msg) return null;
+  return (
+    <p className="text-xs flex items-center gap-1.5 mt-8" role="status" aria-live="polite"
+      style={{ color: msg.tipo === "error" ? "#f87171" : "#b08ee8" }}>
+      {msg.tipo === "error" ? <AlertCircle className="w-3.5 h-3.5 shrink-0" /> : <CheckCircle className="w-3.5 h-3.5 shrink-0" />}
+      {msg.texto}
+    </p>
+  );
+}
+
+// ─── Página principal ────────────────────────────────────────────────────────
+
 export default function ConfiguracionPage() {
   const { perfil, setPerfil, entradas, grupos, reemplazarTodo, preferencias, setPreferencias } = useBiblioteca();
   const { actualizarUsuario } = useAuth();
   const [nombre, setNombre] = useState(perfil.nombre);
-  const [mensaje, setMensaje] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
   const [subiendoAvatar, setSubiendoAvatar] = useState(false);
   const archivoRef = useRef<HTMLInputElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
+
+  // ─── Mensajes por sección ─────────────────────────────────────────
+  const [msgPerfil, setMsgPerfil] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
+  const [msgAvatar, setMsgAvatar] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
+  const [msgCambioCorreo, setMsgCambioCorreo] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
+  const [msgPreferencias, setMsgPreferencias] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
+  const [msgImportar, setMsgImportar] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
+
+  function mostrar(seccion: "perfil" | "avatar" | "cambioCorreo" | "preferencias" | "importar", texto: string, tipo: "exito" | "error" = "exito") {
+    const set = { perfil: setMsgPerfil, avatar: setMsgAvatar, cambioCorreo: setMsgCambioCorreo, preferencias: setMsgPreferencias, importar: setMsgImportar }[seccion];
+    set({ texto, tipo });
+    setTimeout(() => set(null), 5000);
+  }
 
   // ─── Estado: cambio de correo ─────────────────────────────────────
   const [nuevoCorreo, setNuevoCorreo] = useState("");
   const [correoPassword, setCorreoPassword] = useState("");
   const [solicitandoCambioCorreo, setSolicitandoCambioCorreo] = useState(false);
-  const [errorCambioCorreo, setErrorCambioCorreo] = useState<string | null>(null);
 
   // ─── Estado: cambio de contraseña ─────────────────────────────────
   const [passActual, setPassActual] = useState("");
   const [passNueva, setPassNueva] = useState("");
   const [passConf, setPassConf] = useState("");
   const [cambiandoPass, setCambiandoPass] = useState(false);
-  const [errorCambiarPass, setErrorCambiarPass] = useState<string | null>(null);
+  const [msgCambiarPass, setMsgCambiarPass] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
 
   // ─── Estado: establecer contraseña (OAuth) ────────────────────────
   const [nuevaPassOAuth, setNuevaPassOAuth] = useState("");
   const [confPassOAuth, setConfPassOAuth] = useState("");
   const [estableciendoPass, setEstableciendoPass] = useState(false);
-  const [errorEstablecerPass, setErrorEstablecerPass] = useState<string | null>(null);
+  const [msgEstablecerPass, setMsgEstablecerPass] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
 
   // ─── Estado: OAuth ────────────────────────────────────────────────
   const [esOAuth, setEsOAuth] = useState(false);
+  const [cargandoOAuth, setCargandoOAuth] = useState(true);
 
   useEffect(() => {
     obtenerPerfil()
       .then(res => {
         setEsOAuth(!res.data.hasPassword);
       })
-      .catch(() => setEsOAuth(false));
+      .catch(() => setEsOAuth(false))
+      .finally(() => setCargandoOAuth(false));
   }, []);
 
-  function mostrarMensaje(texto: string, tipo: "exito" | "error" = "exito") {
-    setMensaje({ texto, tipo });
-    setTimeout(() => setMensaje(null), 5000);
-  }
+  // ─── Validación en tiempo real: contraseña OAuth ──────────────────
+  const fortalezaOAuth = useMemo(() => evaluarFortaleza(nuevaPassOAuth), [nuevaPassOAuth]);
+  const coincideOAuth = nuevaPassOAuth.length > 0 && nuevaPassOAuth === confPassOAuth;
+  const todoOkOAuth = fortalezaOAuth.largo && fortalezaOAuth.mayuscula && fortalezaOAuth.minuscula && fortalezaOAuth.digito && coincideOAuth;
+
+  // ─── Validación en tiempo real: cambiar contraseña ────────────────
+  const fortalezaCambiar = useMemo(() => evaluarFortaleza(passNueva), [passNueva]);
+  const coincideCambiar = passNueva.length > 0 && passNueva === passConf;
+  const todoOkCambiar = fortalezaCambiar.largo && fortalezaCambiar.mayuscula && fortalezaCambiar.minuscula && fortalezaCambiar.digito && coincideCambiar;
+
+  // ─── Helpers ──────────────────────────────────────────────────────
 
   function descargar(contenido: string, nombreArchivo: string, tipo: string) {
     const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
@@ -130,7 +186,7 @@ export default function ConfiguracionPage() {
           urlRespaldo: (e.urlRespaldo as string) ?? null,
         }));
         reemplazarTodo({ entradas: entradasMigradas, grupos: datos.grupos });
-        mostrarMensaje(`Se importaron ${entradasMigradas.length} títulos desde JSON.`);
+        mostrar("importar", `Se importaron ${entradasMigradas.length} títulos desde JSON.`);
       } else {
         const nuevas: Entrada[] = texto.split("\n").flatMap((linea, i) => {
           const m = linea.match(/^\[(anime|manga)\]\s*(.+?)\s*—\s*([\w-]+)/i);
@@ -157,10 +213,10 @@ export default function ConfiguracionPage() {
           }];
         });
         reemplazarTodo({ entradas: nuevas });
-        mostrarMensaje(`Se importaron ${nuevas.length} títulos desde TXT.`);
+        mostrar("importar", `Se importaron ${nuevas.length} títulos desde TXT.`);
       }
     } catch {
-      mostrarMensaje("No pudimos leer el archivo. Verifica el formato.", "error");
+      mostrar("importar", "No pudimos leer el archivo. Verifica el formato.", "error");
     }
   }
 
@@ -173,95 +229,97 @@ export default function ConfiguracionPage() {
       if (res.ok) {
         setPerfil({ nombre: res.data.nombre });
         actualizarUsuario({ nombre: res.data.nombre });
-        mostrarMensaje("Nombre actualizado exitosamente.");
+        mostrar("perfil", "Nombre actualizado exitosamente.");
       }
     } catch (err: unknown) {
-      mostrarMensaje(extraerMensajeError(err, "Error al actualizar el nombre."), "error");
+      mostrar("perfil", extraerMensajeError(err, "Error al actualizar el nombre."), "error");
     }
   }
 
   async function handlerSolicitarCambioCorreo() {
-    setErrorCambioCorreo(null);
+    setMsgCambioCorreo(null);
     if (!nuevoCorreo.trim() || !correoPassword.trim()) {
-      setErrorCambioCorreo("Ingresa el nuevo correo y tu contraseña actual.");
+      setMsgCambioCorreo({ texto: "Ingresa el nuevo correo y tu contraseña actual.", tipo: "error" });
       return;
     }
     if (nuevoCorreo === perfil.correo) {
-      setErrorCambioCorreo("El nuevo correo es igual al actual.");
+      setMsgCambioCorreo({ texto: "El nuevo correo es igual al actual.", tipo: "error" });
       return;
     }
     setSolicitandoCambioCorreo(true);
     try {
       const res = await solicitarCambioCorreo(nuevoCorreo.trim(), correoPassword);
       if (res.ok) {
-        mostrarMensaje(res.mensaje);
+        setMsgCambioCorreo({ texto: res.mensaje, tipo: "exito" });
         setNuevoCorreo("");
         setCorreoPassword("");
-        setErrorCambioCorreo(null);
       }
     } catch (err: unknown) {
-      setErrorCambioCorreo(extraerMensajeError(err, "Error al solicitar cambio de correo."));
+      setMsgCambioCorreo({ texto: extraerMensajeError(err, "Error al solicitar cambio de correo."), tipo: "error" });
     }
     setSolicitandoCambioCorreo(false);
   }
 
   async function handlerCambiarContrasena(e: React.FormEvent) {
     e.preventDefault();
-    setErrorCambiarPass(null);
+    setMsgCambiarPass(null);
     if (!passActual || !passNueva || !passConf) {
-      setErrorCambiarPass("Completa todos los campos.");
+      setMsgCambiarPass({ texto: "Completa todos los campos.", tipo: "error" });
       return;
     }
-    if (passNueva !== passConf) {
-      setErrorCambiarPass("Las contraseñas nuevas no coinciden.");
-      return;
-    }
-    if (passNueva.length < 8) {
-      setErrorCambiarPass("La nueva contraseña debe tener al menos 8 caracteres.");
+    if (!todoOkCambiar) {
+      const errores: string[] = [];
+      if (!fortalezaCambiar.largo) errores.push("al menos 8 caracteres");
+      if (!fortalezaCambiar.mayuscula) errores.push("una letra mayúscula");
+      if (!fortalezaCambiar.minuscula) errores.push("una letra minúscula");
+      if (!fortalezaCambiar.digito) errores.push("un número");
+      if (!coincideCambiar) errores.push("las contraseñas deben coincidir");
+      setMsgCambiarPass({ texto: `La contraseña debe tener: ${errores.join(", ")}.`, tipo: "error" });
       return;
     }
     setCambiandoPass(true);
     try {
       const res = await cambiarContrasena(passActual, passNueva);
       if (res.ok) {
-        mostrarMensaje("Contraseña actualizada exitosamente.");
+        setMsgCambiarPass({ texto: "Contraseña actualizada exitosamente.", tipo: "exito" });
         setPassActual("");
         setPassNueva("");
         setPassConf("");
-        setErrorCambiarPass(null);
       }
     } catch (err: unknown) {
-      setErrorCambiarPass(extraerMensajeError(err, "Error al cambiar la contraseña."));
+      setMsgCambiarPass({ texto: extraerMensajeError(err, "Error al cambiar la contraseña."), tipo: "error" });
     }
     setCambiandoPass(false);
   }
 
   async function handlerEstablecerContrasena(e: React.FormEvent) {
     e.preventDefault();
-    setErrorEstablecerPass(null);
+    setMsgEstablecerPass(null);
     if (!nuevaPassOAuth || !confPassOAuth) {
-      setErrorEstablecerPass("Completa todos los campos.");
+      setMsgEstablecerPass({ texto: "Completa todos los campos.", tipo: "error" });
       return;
     }
-    if (nuevaPassOAuth !== confPassOAuth) {
-      setErrorEstablecerPass("Las contraseñas no coinciden.");
-      return;
-    }
-    if (nuevaPassOAuth.length < 8) {
-      setErrorEstablecerPass("La contraseña debe tener al menos 8 caracteres.");
+    if (!todoOkOAuth) {
+      const errores: string[] = [];
+      if (!fortalezaOAuth.largo) errores.push("al menos 8 caracteres");
+      if (!fortalezaOAuth.mayuscula) errores.push("una letra mayúscula");
+      if (!fortalezaOAuth.minuscula) errores.push("una letra minúscula");
+      if (!fortalezaOAuth.digito) errores.push("un número");
+      if (!coincideOAuth) errores.push("las contraseñas deben coincidir");
+      setMsgEstablecerPass({ texto: `La contraseña debe tener: ${errores.join(", ")}.`, tipo: "error" });
       return;
     }
     setEstableciendoPass(true);
     try {
       const res = await establecerContrasena(nuevaPassOAuth);
       if (res.ok) {
-        mostrarMensaje("Contraseña creada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.");
+        setMsgEstablecerPass({ texto: "Contraseña creada exitosamente. Ahora puedes iniciar sesión con tu correo y contraseña.", tipo: "exito" });
         setNuevaPassOAuth("");
         setConfPassOAuth("");
-        setErrorEstablecerPass(null);
+        setEsOAuth(false);
       }
     } catch (err: unknown) {
-      setErrorEstablecerPass(extraerMensajeError(err, "Error al establecer la contraseña."));
+      setMsgEstablecerPass({ texto: extraerMensajeError(err, "Error al establecer la contraseña."), tipo: "error" });
     }
     setEstableciendoPass(false);
   }
@@ -272,7 +330,7 @@ export default function ConfiguracionPage() {
         Configuración
       </h1>
 
-      {/* Perfil */}
+      {/* ─── Perfil ──────────────────────────────────────────────── */}
       <section className="bg-[#110f1a] border border-[#2a2140] rounded-2xl p-5 mb-5">
         <h2 className="text-base font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
           <User className="w-4 h-4 text-[#946ed9]" /> Perfil
@@ -294,6 +352,7 @@ export default function ConfiguracionPage() {
                 const f = e.target.files?.[0];
                 if (!f) return;
                 setSubiendoAvatar(true);
+                setMsgAvatar(null);
                 try {
                   const formData = new FormData();
                   formData.append("archivo", f);
@@ -302,9 +361,9 @@ export default function ConfiguracionPage() {
                   });
                   setPerfil({ avatar: res.data.avatar });
                   actualizarUsuario({ avatar: res.data.avatar });
-                  mostrarMensaje("Foto de perfil actualizada.");
+                  mostrar("avatar", "Foto de perfil actualizada.");
                 } catch {
-                  mostrarMensaje("Error al subir la foto de perfil.", "error");
+                  mostrar("avatar", "Error al subir la foto de perfil.", "error");
                 }
                 setSubiendoAvatar(false);
                 if (avatarRef.current) avatarRef.current.value = "";
@@ -319,6 +378,7 @@ export default function ConfiguracionPage() {
               <Camera className="w-3.5 h-3.5" />
               {subiendoAvatar ? "Subiendo…" : "Cambiar foto"}
             </button>
+            <MensajeSeccion msg={msgAvatar} />
           </div>
         </div>
         <div className="grid sm:grid-cols-2 gap-3">
@@ -329,10 +389,8 @@ export default function ConfiguracionPage() {
           </div>
           <div>
             <label htmlFor="correo" className="block text-xs text-[#8b82a8] mb-1">Correo electrónico</label>
-            <div className="flex gap-2">
-              <input id="correo" type="email" value={perfil.correo} readOnly
-                className="flex-1 h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm text-[#8b82a8] cursor-not-allowed" />
-            </div>
+            <input id="correo" type="email" value={perfil.correo} readOnly
+              className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm text-[#8b82a8] cursor-not-allowed" />
           </div>
         </div>
         <div className="flex flex-wrap gap-2 mt-4">
@@ -345,51 +403,65 @@ export default function ConfiguracionPage() {
             Guardar nombre
           </button>
         </div>
+        <MensajeSeccion msg={msgPerfil} />
       </section>
 
-      {/* Cambio de correo */}
+      {/* ─── Cambio de correo ────────────────────────────────────── */}
       <section className="bg-[#110f1a] border border-[#2a2140] rounded-2xl p-5 mb-5">
-        <h2 className="text-base font-semibold mb-1 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
+        <h2 className="text-base font-semibold mb-2 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
           <Mail className="w-4 h-4 text-[#946ed9]" /> Cambiar correo electrónico
         </h2>
-        <p className="text-sm text-[#8b82a8] mb-4">
+        <p className="text-sm text-[#8b82a8] mb-6">
           Se enviará un correo de verificación a la nueva dirección. Tu correo actual seguirá activo hasta que confirmes.
         </p>
-        <div className="grid sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label htmlFor="nuevo-correo" className="block text-xs text-[#8b82a8] mb-1">Nuevo correo</label>
-            <input id="nuevo-correo" type="email" value={nuevoCorreo} onChange={e => { setNuevoCorreo(e.target.value); setErrorCambioCorreo(null); }}
-              placeholder="nuevo@correo.com"
-              className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
+
+        {esOAuth && !cargandoOAuth ? (
+          <div className="flex items-start gap-3 bg-[#16141e] border border-[#2a2140] rounded-xl p-4">
+            <Lock className="w-5 h-5 text-[#8b82a8] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-[#f0eefa] font-medium">Necesitas crear una contraseña primero</p>
+              <p className="text-xs text-[#8b82a8] mt-1">
+                Tu cuenta fue creada con un proveedor externo (Google/Discord). Para cambiar tu correo electrónico, primero establece una contraseña en la sección de abajo.
+              </p>
+            </div>
           </div>
-          <div>
-            <label htmlFor="correo-pass" className="block text-xs text-[#8b82a8] mb-1">Contraseña actual (para confirmar)</label>
-            <input id="correo-pass" type="password" value={correoPassword} onChange={e => { setCorreoPassword(e.target.value); setErrorCambioCorreo(null); }}
-              placeholder="Tu contraseña actual"
-              className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
-          </div>
-        </div>
-        <button
-          onClick={handlerSolicitarCambioCorreo}
-          disabled={solicitandoCambioCorreo || !nuevoCorreo.trim() || !correoPassword.trim()}
-          className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 disabled:opacity-40 flex items-center gap-2"
-        >
-          <Mail className="w-4 h-4" />
-          {solicitandoCambioCorreo ? "Enviando…" : "Enviar correo de verificación"}
-        </button>
-        {errorCambioCorreo && (
-          <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
-            <AlertCircle className="w-3.5 h-3.5" /> {errorCambioCorreo}
-          </p>
+        ) : (
+          <>
+            <div className="grid sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label htmlFor="nuevo-correo" className="block text-xs text-[#8b82a8] mb-1">Nuevo correo</label>
+                <input id="nuevo-correo" type="email" value={nuevoCorreo}
+                  onChange={e => { setNuevoCorreo(e.target.value); setMsgCambioCorreo(null); }}
+                  placeholder="nuevo@correo.com"
+                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
+              </div>
+              <div>
+                <label htmlFor="correo-pass" className="block text-xs text-[#8b82a8] mb-1">Contraseña actual (para confirmar)</label>
+                <input id="correo-pass" type="password" value={correoPassword}
+                  onChange={e => { setCorreoPassword(e.target.value); setMsgCambioCorreo(null); }}
+                  placeholder="Tu contraseña actual"
+                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
+              </div>
+            </div>
+            <button
+              onClick={handlerSolicitarCambioCorreo}
+              disabled={solicitandoCambioCorreo || !nuevoCorreo.trim() || !correoPassword.trim()}
+              className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 disabled:opacity-40 flex items-center gap-2 mt-4"
+            >
+              <Mail className="w-4 h-4" />
+              {solicitandoCambioCorreo ? "Enviando…" : "Enviar correo de verificación"}
+            </button>
+          </>
         )}
+        <MensajeSeccion msg={msgCambioCorreo} />
       </section>
 
-      {/* Contenido */}
+      {/* ─── Filtro de contenido ─────────────────────────────────── */}
       <section className="bg-[#110f1a] border border-[#2a2140] rounded-2xl p-5 mb-5">
-        <h2 className="text-base font-semibold mb-1 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
+        <h2 className="text-base font-semibold mb-2 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
           <ShieldAlert className="w-4 h-4 text-[#946ed9]" /> Filtro de contenido
         </h2>
-        <p className="text-sm text-[#8b82a8] mb-4">
+        <p className="text-sm text-[#8b82a8] mb-6">
           Controla qué títulos aparecen en los buscadores de anime y manga del catálogo.
         </p>
         <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -401,8 +473,9 @@ export default function ConfiguracionPage() {
               setPreferencias({ sfw: nuevoSfw });
               try {
                 await api.patch("/auth/preferencias", { sfw: nuevoSfw });
+                mostrar("preferencias", "Preferencias actualizadas.");
               } catch {
-                mostrarMensaje("Error al guardar preferencias.", "error");
+                mostrar("preferencias", "Error al guardar las preferencias.", "error");
               }
             }}
             className="mt-1 w-4 h-4 accent-[#946ed9]"
@@ -414,9 +487,10 @@ export default function ConfiguracionPage() {
             </span>
           </span>
         </label>
+        <MensajeSeccion msg={msgPreferencias} />
       </section>
 
-      {/* Contraseña — Cambiar (usuarios con password) o Establecer (OAuth) */}
+      {/* ─── Contraseña ──────────────────────────────────────────── */}
       <section className="bg-[#110f1a] border border-[#2a2140] rounded-2xl p-5 mb-5">
         <h2 className="text-base font-semibold mb-4 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
           <KeyRound className="w-4 h-4 text-[#946ed9]" />
@@ -429,66 +503,92 @@ export default function ConfiguracionPage() {
               Tu cuenta fue creada con un proveedor externo (Google/Discord). Establece una contraseña para poder iniciar sesión también con tu correo y contraseña.
             </p>
             <form onSubmit={handlerEstablecerContrasena} className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="pass-nueva-oauth" className="block text-xs text-[#8b82a8] mb-1">Nueva contraseña</label>
-                <input id="pass-nueva-oauth" type="password" required minLength={8} value={nuevaPassOAuth} onChange={e => { setNuevaPassOAuth(e.target.value); setErrorEstablecerPass(null); }}
-                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
+              <PasswordField
+                label="Nueva contraseña"
+                id="pass-nueva-oauth"
+                placeholder="Mínimo 8 caracteres"
+                value={nuevaPassOAuth}
+                onChange={v => { setNuevaPassOAuth(v); setMsgEstablecerPass(null); }}
+              />
+              <PasswordField
+                label="Confirmar contraseña"
+                id="pass-conf-oauth"
+                placeholder="Repite la contraseña"
+                value={confPassOAuth}
+                onChange={v => { setConfPassOAuth(v); setMsgEstablecerPass(null); }}
+              />
+              <div className="sm:col-span-2">
+                <button type="submit" disabled={estableciendoPass || !todoOkOAuth}
+                  className="h-10 px-4 rounded-xl text-sm font-semibold text-white disabled:opacity-40 mt-2"
+                  style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)", fontFamily: "'Oxanium', sans-serif" }}>
+                  {estableciendoPass ? "Guardando…" : "Establecer contraseña"}
+                </button>
               </div>
-              <div>
-                <label htmlFor="pass-conf-oauth" className="block text-xs text-[#8b82a8] mb-1">Confirmar contraseña</label>
-                <input id="pass-conf-oauth" type="password" required minLength={8} value={confPassOAuth} onChange={e => { setConfPassOAuth(e.target.value); setErrorEstablecerPass(null); }}
-                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
-              </div>
-              <button type="submit" disabled={estableciendoPass}
-                className="h-10 px-4 rounded-xl text-sm font-semibold text-white disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)", fontFamily: "'Oxanium', sans-serif" }}>
-                {estableciendoPass ? "Guardando…" : "Establecer contraseña"}
-              </button>
             </form>
-            {errorEstablecerPass && (
-              <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" /> {errorEstablecerPass}
-              </p>
+            {/* Requisitos en tiempo real */}
+            {nuevaPassOAuth.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                <Requisito texto="8+ caracteres" ok={fortalezaOAuth.largo} />
+                <Requisito texto="Mayúscula" ok={fortalezaOAuth.mayuscula} />
+                <Requisito texto="Minúscula" ok={fortalezaOAuth.minuscula} />
+                <Requisito texto="Número" ok={fortalezaOAuth.digito} />
+                <Requisito texto="Coincide" ok={coincideOAuth} />
+              </div>
             )}
+            <MensajeSeccion msg={msgEstablecerPass} />
           </>
         ) : (
           <>
             <form onSubmit={handlerCambiarContrasena} className="grid sm:grid-cols-3 gap-3">
-              <div>
-                <label htmlFor="pass-actual" className="block text-xs text-[#8b82a8] mb-1">Actual</label>
-                <input id="pass-actual" type="password" required minLength={8} value={passActual} onChange={e => { setPassActual(e.target.value); setErrorCambiarPass(null); }}
-                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
+              <PasswordField
+                label="Contraseña actual"
+                id="pass-actual"
+                placeholder="Tu contraseña actual"
+                value={passActual}
+                onChange={v => { setPassActual(v); setMsgCambiarPass(null); }}
+              />
+              <PasswordField
+                label="Nueva contraseña"
+                id="pass-nueva"
+                placeholder="Mínimo 8 caracteres"
+                value={passNueva}
+                onChange={v => { setPassNueva(v); setMsgCambiarPass(null); }}
+              />
+              <PasswordField
+                label="Confirmar nueva"
+                id="pass-conf"
+                placeholder="Repite la contraseña"
+                value={passConf}
+                onChange={v => { setPassConf(v); setMsgCambiarPass(null); }}
+              />
+              <div className="sm:col-span-3">
+                <button type="submit" disabled={cambiandoPass}
+                  className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 disabled:opacity-40 mt-2">
+                  {cambiandoPass ? "Actualizando…" : "Actualizar contraseña"}
+                </button>
               </div>
-              <div>
-                <label htmlFor="pass-nueva" className="block text-xs text-[#8b82a8] mb-1">Nueva</label>
-                <input id="pass-nueva" type="password" required minLength={8} value={passNueva} onChange={e => { setPassNueva(e.target.value); setErrorCambiarPass(null); }}
-                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
-              </div>
-              <div>
-                <label htmlFor="pass-conf" className="block text-xs text-[#8b82a8] mb-1">Confirmar</label>
-                <input id="pass-conf" type="password" required minLength={8} value={passConf} onChange={e => { setPassConf(e.target.value); setErrorCambiarPass(null); }}
-                  className="w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]" />
-              </div>
-              <button type="submit" disabled={cambiandoPass}
-                className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 disabled:opacity-40">
-                {cambiandoPass ? "Actualizando…" : "Actualizar contraseña"}
-              </button>
             </form>
-            {errorCambiarPass && (
-              <p className="mt-2 text-xs text-red-400 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" /> {errorCambiarPass}
-              </p>
+            {/* Requisitos en tiempo real */}
+            {passNueva.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                <Requisito texto="8+ caracteres" ok={fortalezaCambiar.largo} />
+                <Requisito texto="Mayúscula" ok={fortalezaCambiar.mayuscula} />
+                <Requisito texto="Minúscula" ok={fortalezaCambiar.minuscula} />
+                <Requisito texto="Número" ok={fortalezaCambiar.digito} />
+                <Requisito texto="Coincide" ok={coincideCambiar} />
+              </div>
             )}
+            <MensajeSeccion msg={msgCambiarPass} />
           </>
         )}
       </section>
 
-      {/* Importar / exportar */}
+      {/* ─── Importar / exportar ─────────────────────────────────── */}
       <section className="bg-[#110f1a] border border-[#2a2140] rounded-2xl p-5">
-        <h2 className="text-base font-semibold mb-1 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
+        <h2 className="text-base font-semibold mb-2 flex items-center gap-2" style={{ fontFamily: "'Oxanium', sans-serif" }}>
           <FileJson className="w-4 h-4 text-[#946ed9]" /> Importar y exportar listas
         </h2>
-        <p className="text-sm text-[#8b82a8] mb-4">
+        <p className="text-sm text-[#8b82a8] mb-6">
           Descarga una copia de tu biblioteca y tus grupos, o restaura desde un archivo JSON o TXT.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -511,15 +611,8 @@ export default function ConfiguracionPage() {
             onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = ""; }}
           />
         </div>
+        <MensajeSeccion msg={msgImportar} />
       </section>
-
-      {/* Mensaje global */}
-      {mensaje && (
-        <p aria-live="polite" className={`mt-4 text-sm flex items-center gap-2 min-h-5 ${mensaje.tipo === "error" ? "text-red-400" : "text-[#b08ee8]"}`}>
-          {mensaje.tipo === "error" ? <AlertCircle className="w-4 h-4 shrink-0" /> : <CheckCircle className="w-4 h-4 shrink-0" />}
-          {mensaje.texto}
-        </p>
-      )}
     </div>
   );
 }
