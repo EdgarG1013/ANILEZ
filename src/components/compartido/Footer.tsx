@@ -89,20 +89,16 @@ export default function Footer() {
       <div className="border-t border-white/5">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-[#4a4360]">
           <span>
-            Impulsado por{" "}
-            <a
-              href="https://jikan.moe"
-              className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors"
-            >
-              Jikan API
+            <a href="/sobre-nosotros" className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors" >
+              Sobre nosotros
             </a>
           </span>
           <span>© {anioActual} ANILEZ. Todos los derechos reservados.</span>
           <span className="flex items-center gap-3">
-            <a href="#" className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors">
+            <a href="/privacidad" className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors">
               Privacidad
             </a>
-            <a href="#" className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors">
+            <a href="/terminos" className="underline text-[#8b82a8] hover:text-[#f0eefa] transition-colors">
               Términos
             </a>
           </span>

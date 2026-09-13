@@ -5,6 +5,8 @@ import HomePage from "./pages/landing/HomePage";
 import BrowsePage from "./pages/landing/BrowsePage";
 import AnimeDetalladoHomePage from "./pages/landing/AnimeDetalladoHomePage";
 import MangaDetalladoHomePage from "./pages/landing/MangaDetalladoHomePage";
+import PrivacidadPage from "./pages/landing/PrivacidadPage";
+import TerminosPage from "./pages/landing/TerminosPage";
 // ─── Paginas de autenticación ───────────────────────────────────────
 import IniciarSesionPage from "./pages/autenticacion/IniciarSesionPage";
 import RegistroPage from "./pages/autenticacion/RegistroPage";
@@ -43,6 +45,8 @@ export const router = createBrowserRouter([
       { path: "explorar", element: <BrowsePage /> },
       { path: "anime/:id", element: <AnimeDetalladoHomePage /> },
       { path: "manga/:id", element: <MangaDetalladoHomePage /> },
+      { path: "privacidad", element: <PrivacidadPage /> },
+      { path: "terminos", element: <TerminosPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
