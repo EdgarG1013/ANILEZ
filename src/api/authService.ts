@@ -209,6 +209,20 @@ export const getOAuthRedirectUrl = (provider: 'google' | 'discord'): string => {
 };
 
 // ============================================================
+// ELIMINAR CUENTA
+// ============================================================
+
+export interface EliminarCuentaResponse {
+  ok: boolean;
+  mensaje: string;
+}
+
+export const eliminarCuenta = async (nombre: string): Promise<EliminarCuentaResponse> => {
+  const response = await api.delete<EliminarCuentaResponse>('/auth/cuenta', { data: { nombre } });
+  return response.data;
+};
+
+// ============================================================
 // UTILIDADES LOCALES
 // ============================================================
 

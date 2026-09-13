@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Upload, Download, User, KeyRound, FileJson, FileText, ShieldAlert, Camera, Mail, CheckCircle, AlertCircle, Lock } from "lucide-react";
+import { Upload, Download, User, KeyRound, FileJson, FileText, ShieldAlert, Camera, Mail, CheckCircle, AlertCircle, Lock, Trash2 } from "lucide-react";
 import { useBiblioteca, type Entrada, type Grupo } from "../../store/biblioteca";
 import { useAuth } from "../../store/auth";
 import api from "../../api/axios";
@@ -9,8 +9,10 @@ import {
   cambiarContrasena,
   establecerContrasena,
   obtenerPerfil,
+  eliminarCuenta,
 } from "../../api/authService";
 import { PasswordField } from "../../components/ui/FormFields";
+import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteAccountModal";
 
 // ─── Utilidades ──────────────────────────────────────────────────────────────
 
@@ -74,7 +76,7 @@ function MensajeSeccion({ msg }: { msg: { texto: string; tipo: "exito" | "error"
 
 export default function ConfiguracionPage() {
   const { perfil, setPerfil, entradas, grupos, reemplazarTodo, preferencias, setPreferencias } = useBiblioteca();
-  const { actualizarUsuario } = useAuth();
+  const { actualizarUsuario, logout } = useAuth();
   const [nombre, setNombre] = useState(perfil.nombre);
   const [subiendoAvatar, setSubiendoAvatar] = useState(false);
   const archivoRef = useRef<HTMLInputElement>(null);
@@ -123,6 +125,26 @@ export default function ConfiguracionPage() {
       .catch(() => setEsOAuth(false))
       .finally(() => setCargandoOAuth(false));
   }, []);
+
+  // ─── Estado: eliminar cuenta ──────────────────────────────────────
+  const [modalEliminar, setModalEliminar] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const [msgEliminar, setMsgEliminar] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
+
+  async function handleEliminarCuenta() {
+    setEliminando(true);
+    setMsgEliminar(null);
+    try {
+      const res = await eliminarCuenta(perfil.nombre);
+      if (res.ok) {
+        setModalEliminar(false);
+        await logout();
+      }
+    } catch (err: unknown) {
+      setMsgEliminar({ texto: extraerMensajeError(err, "Error al eliminar la cuenta."), tipo: "error" });
+      setEliminando(false);
+    }
+  }
 
   // ─── Validación en tiempo real: contraseña OAuth ──────────────────
   const fortalezaOAuth = useMemo(() => evaluarFortaleza(nuevaPassOAuth), [nuevaPassOAuth]);
@@ -613,6 +635,35 @@ export default function ConfiguracionPage() {
         </div>
         <MensajeSeccion msg={msgImportar} />
       </section>
+
+      {/* ─── Danger Zone ────────────────────────────────────────── */}
+      <section className="bg-[#1a0f0f] border border-red-500/25 rounded-2xl p-5 mt-5">
+        <h2 className="text-base font-semibold mb-1 flex items-center gap-2 text-red-400" style={{ fontFamily: "'Oxanium', sans-serif" }}>
+          <Trash2 className="w-4 h-4" /> Zona de peligro
+        </h2>
+        <p className="text-sm text-[#8b82a8] mb-4">
+          Eliminar tu cuenta es una acción irreversible. Se borrarán todas tus listas, grupos, foto de perfil y datos asociados.
+        </p>
+        <button
+          onClick={() => { setModalEliminar(true); setMsgEliminar(null); }}
+          className="h-10 px-4 rounded-xl text-sm font-semibold border border-red-500/40 text-red-400 hover:bg-red-500/10 hover:border-red-500/60 transition-colors"
+        >
+          Eliminar mi cuenta
+        </button>
+        <MensajeSeccion msg={msgEliminar} />
+      </section>
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmDeleteModal
+        open={modalEliminar}
+        titulo="Eliminar cuenta permanentemente"
+        mensaje={`Escribe "${perfil.nombre}" para eliminar tu cuenta y todos tus datos de forma permanente.`}
+        textoConfirmacion={perfil.nombre}
+        textoBoton="Eliminar cuenta"
+        onClose={() => { setModalEliminar(false); setMsgEliminar(null); }}
+        onConfirm={handleEliminarCuenta}
+        loading={eliminando}
+      />
     </div>
   );
 }
