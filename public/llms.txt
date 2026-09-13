@@ -1,0 +1,37 @@
+# ANILEZ
+
+> ANILEZ es una aplicación web SPA para explorar, organizar y dar seguimiento a tu biblioteca de anime y manga. Construida por el desarrollador colombiano Edgar Garcia.
+
+Aplicación de código abierto desplegada en Vercel. El catálogo de contenido se alimenta de la API de Tenrai. Permite crear listas personalizadas, grupos de listas y explorar el catálogo con filtros avanzados.
+
+- Idioma principal: español (es)
+- GitHub del desarrollador: https://github.com/EdgarG1013
+
+## Rutas públicas
+
+- [Inicio](https://anilez.site/): Página principal con banners, carruseles de populares, temporales y próximos estrenos
+- [Explorar](https://anilez.site/explorar): Catálogo con filtros por tipo, género, estado, año, temporada y orden
+- [Detalle de anime](https://anilez.site/anime/:id): Ficha completa de un anime con sinopsis, géneros, puntuación y episodios
+- [Detalle de manga](https://anilez.site/manga/:id): Ficha completa de un manga con sinopsis, géneros, puntuación y capítulos
+- [Política de Privacidad](https://anilez.site/privacidad): Documento legal sobre tratamiento de datos personales
+- [Términos de Servicio](https://anilez.site/terminos): Condiciones de uso de la plataforma
+
+## Autenticación
+
+- [Iniciar sesión](https://anilez.site/iniciar-sesion): Acceso con usuario/contraseña, Google OAuth o Discord OAuth
+- [Registro](https://anilez.site/registro): Creación de cuenta nueva
+- [Recuperar contraseña](https://anilez.site/recuperar-password): Restablecimiento de contraseña por correo
+
+## Panel de usuario (requiere sesión)
+
+- [Inicio del panel](https://anilez.site/panel): Resumen de actividad reciente
+- [Catálogo de anime](https://anilez.site/panel/catalogo-anime): Explorar y agregar anime a la biblioteca
+- [Catálogo de manga](https://anilez.site/panel/catalogo-manga): Explorar y agregar manga a la biblioteca
+- [Listas de anime](https://anilez.site/panel/listas-anime): Gestionar listas personalizadas de anime
+- [Listas de manga](https://anilez.site/panel/listas-manga): Gestionar listas personalizadas de manga
+- [Grupos](https://anilez.site/panel/grupos): Crear y administrar grupos de listas compartidas
+- [Configuración](https://anilez.site/panel/configuracion): Preferencias, perfil, exportación de datos y eliminación de cuenta
+
+## Optional
+
+- [Sobre Edgar Garcia](https://github.com/EdgarG1013): Desarrollador del proyecto ANILEZ, este sitio es creado y mantenido por Edgar Garcia.
