@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft, Plus, Trash2, GripVertical, X, ImageIcon, Pencil, Check,
-  ImagePlus,
+  ImagePlus, ListChecks,
 } from "lucide-react";
 import { useBiblioteca, type ListaPersonalizada } from "../../store/biblioteca";
 import type { Medio } from "../../api/catalogoService";
@@ -116,22 +116,22 @@ export default function GrupoDetallePage() {
 
   const clavesActivas = useMemo(() => new Set(activa?.items.map(i => i.clave) ?? []), [activa]);
 
-  const campo = "w-full h-10 bg-[#16141e] border border-[#2a2140] rounded-xl px-3 text-sm focus:outline-none focus:border-[#946ed9]";
-  const campoLabel = "text-[11px] uppercase tracking-wider text-[#8b82a8] mb-1";
+  const campo = "w-full h-11 bg-[#16141e] border border-[#2a2140] rounded-xl px-3.5 text-sm focus:outline-none focus:border-[#946ed9] transition-colors";
+  const campoLabel = "block text-[11px] uppercase tracking-wider text-[#8b82a8] mb-1.5";
 
   return (
-    <div>
-      <Link to="/panel/grupos" className="inline-flex items-center gap-2 text-sm text-[#8b82a8] hover:text-[#f0eefa] mb-4">
+    <div className="pb-10">
+      <Link to="/panel/grupos" className="inline-flex items-center gap-2 text-sm text-[#8b82a8] hover:text-[#f0eefa] mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Grupos
       </Link>
 
-      {/* Cabecera del grupo */}
-      <header className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden mb-5">
+      {/* ── Cabecera del grupo ───────────────────────────────────────── */}
+      <header className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden mb-8">
         <div className="flex flex-col sm:flex-row">
-          <div className="sm:w-56 shrink-0 aspect-[16/9] sm:aspect-auto sm:min-h-[150px] bg-[#16141e] flex items-center justify-center relative group">
+          <div className="sm:w-64 shrink-0 aspect-[16/9] sm:aspect-auto sm:min-h-[180px] bg-[#16141e] flex items-center justify-center relative group">
             {grupo.portadaUrl
               ? <img src={grupo.portadaUrl} alt="" className="w-full h-full object-cover" />
-              : <ImageIcon className="w-8 h-8 text-[#2a2140]" aria-hidden="true" />}
+              : <ImageIcon className="w-9 h-9 text-[#2a2140]" aria-hidden="true" />}
             {editandoGrupo && (
               <>
                 <input
@@ -147,7 +147,7 @@ export default function GrupoDetallePage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 transition-opacity"
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1.5 transition-opacity"
                 >
                   <ImagePlus className="w-6 h-6 text-white" />
                   <span className="text-xs text-white font-semibold">Cambiar portada</span>
@@ -155,9 +155,26 @@ export default function GrupoDetallePage() {
               </>
             )}
           </div>
-          <div className="flex-1 min-w-0 p-4">
+
+          <div className="flex-1 min-w-0 p-5 sm:p-6 flex flex-col">
+            <div className="flex items-start justify-between gap-3 mb-1">
+              <div className="min-w-0 flex-1">
+                {!editandoGrupo && (
+                  <h1 className="text-xl sm:text-2xl font-semibold tracking-wider truncate" style={{ fontFamily: "'Oxanium', sans-serif" }}>
+                    {grupo.titulo}
+                  </h1>
+                )}
+              </div>
+              <button
+                onClick={() => setEditandoGrupo(v => !v)}
+                className="h-9 px-3.5 rounded-xl text-xs font-semibold border border-[#2a2140] text-[#f0eefa] hover:border-[#946ed9]/60 flex items-center gap-1.5 shrink-0 transition-colors"
+              >
+                {editandoGrupo ? <><Check className="w-3.5 h-3.5" /> Listo</> : <><Pencil className="w-3.5 h-3.5" /> Editar</>}
+              </button>
+            </div>
+
             {editandoGrupo ? (
-              <div className="space-y-3">
+              <div className="space-y-4 mt-3">
                 <div>
                   <label className={campoLabel}>Título</label>
                   <input value={grupo.titulo} onChange={e => actualizarGrupo(grupo.id, { titulo: e.target.value })} aria-label="Título del grupo" className={campo} />
@@ -183,174 +200,180 @@ export default function GrupoDetallePage() {
                     aria-label="Etiquetas del grupo"
                     className={campo}
                   />
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {grupo.etiquetas.map(t => (
-                      <span key={t} className="text-[11px] px-2 py-0.5 rounded-md bg-[#946ed9]/15 text-[#b08ee8] border border-[#946ed9]/30">#{t}</span>
-                    ))}
-                  </div>
+                  {grupo.etiquetas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2.5">
+                      {grupo.etiquetas.map(t => (
+                        <span key={t} className="text-[11px] px-2 py-0.5 rounded-md bg-[#946ed9]/15 text-[#b08ee8] border border-[#946ed9]/30">#{t}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
-              <>
-                <h1 className="text-xl sm:text-2xl font-semibold tracking-wider pr-10" style={{ fontFamily: "'Oxanium', sans-serif" }}>
-                  {grupo.titulo}
-                </h1>
-                {grupo.descripcion && <p className="text-sm text-[#8b82a8] mt-1">{grupo.descripcion}</p>}
-                <ul className="flex flex-wrap gap-1.5 mt-3">
-                  {grupo.etiquetas.map(t => (
-                    <li key={t} className="text-[11px] px-2 py-0.5 rounded-md bg-[#946ed9]/15 text-[#b08ee8] border border-[#946ed9]/30">#{t}</li>
-                  ))}
-                </ul>
-              </>
+              <div className="mt-2 flex-1 flex flex-col">
+                {grupo.descripcion && <p className="text-sm text-[#8b82a8] leading-relaxed max-w-prose">{grupo.descripcion}</p>}
+                {grupo.etiquetas.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5 mt-3">
+                    {grupo.etiquetas.map(t => (
+                      <li key={t} className="text-[11px] px-2 py-0.5 rounded-md bg-[#946ed9]/15 text-[#b08ee8] border border-[#946ed9]/30">#{t}</li>
+                    ))}
+                  </ul>
+                )}
+                <p className="text-xs text-[#8b82a8] mt-auto pt-4 flex items-center gap-1.5">
+                  <ListChecks className="w-3.5 h-3.5" aria-hidden="true" />
+                  {listas.length} {listas.length === 1 ? "lista" : "listas"} · {listas.reduce((n, l) => n + l.items.length, 0)} títulos en total
+                </p>
+              </div>
             )}
-          </div>
-          <div className="p-4 sm:pl-0">
-            <button
-              onClick={() => setEditandoGrupo(v => !v)}
-              className="h-9 px-3 rounded-xl text-xs font-semibold border border-[#2a2140] text-[#f0eefa] hover:border-[#946ed9]/60 flex items-center gap-1.5 w-full sm:w-auto justify-center"
-            >
-              {editandoGrupo ? <><Check className="w-3.5 h-3.5" /> Listo</> : <><Pencil className="w-3.5 h-3.5" /> Editar</>}
-            </button>
           </div>
         </div>
       </header>
 
-      {/* Pestañas de listas */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {listas.map(l => (
+      {/* ── Listas del grupo ─────────────────────────────────────────── */}
+      <section>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h2 className="text-xs uppercase tracking-wider text-[#8b82a8] font-semibold">Listas del grupo</h2>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-5">
+          {listas.map(l => (
+            <button
+              key={l.id}
+              onClick={() => { setListaActiva(l.id); setModoEdicion(false); }}
+              aria-current={activa?.id === l.id}
+              className={`h-10 px-4 rounded-xl text-sm font-semibold border transition-colors ${
+                activa?.id === l.id ? "bg-[#946ed9] border-[#946ed9] text-white" : "bg-[#16141e] border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa]"
+              }`}
+              style={{ fontFamily: "'Oxanium', sans-serif" }}
+            >
+              {l.nombre} <span className="opacity-70">({l.items.length})</span>
+            </button>
+          ))}
           <button
-            key={l.id}
-            onClick={() => { setListaActiva(l.id); setModoEdicion(false); }}
-            aria-current={activa?.id === l.id}
-            className={`h-10 px-4 rounded-xl text-sm font-semibold border transition-colors ${
-              activa?.id === l.id ? "bg-[#946ed9] border-[#946ed9] text-white" : "bg-[#16141e] border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa]"
-            }`}
-            style={{ fontFamily: "'Oxanium', sans-serif" }}
+            onClick={nuevaLista}
+            className="h-10 px-4 rounded-xl text-sm font-semibold border border-dashed border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa] hover:border-[#946ed9]/60 flex items-center gap-1.5 transition-colors"
           >
-            {l.nombre} <span className="opacity-70">({l.items.length})</span>
+            <Plus className="w-4 h-4" /> Nueva lista
           </button>
-        ))}
-        <button
-          onClick={nuevaLista}
-          className="h-10 px-4 rounded-xl text-sm font-semibold border border-dashed border-[#2a2140] text-[#8b82a8] hover:text-[#f0eefa] flex items-center gap-1.5"
-        >
-          <Plus className="w-4 h-4" /> Nueva lista
-        </button>
-      </div>
+        </div>
 
-      {!activa ? (
-        <p className="py-16 text-center text-[#8b82a8]">Este grupo aún no tiene listas. Crea la primera arriba.</p>
-      ) : (
-        <>
-          {/* Barra de controles de la lista */}
-          <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center">
-            {/* Fila superior en mobile: orden + nombre */}
-            <div className="flex gap-2 sm:flex-1 sm:items-center">
-              <Select valor={orden} onChange={v => setOrden(v as Orden)} opciones={ORDENES} className="sm:w-56 shrink-0" />
-              {modoEdicion ? (
-                <input
-                  value={activa.nombre}
-                  onChange={e => actualizarListaGrupo(activa.id, { nombre: e.target.value })}
-                  aria-label="Nombre de la lista"
-                  className="flex-1 min-w-0 h-10 bg-[#16141e] border border-[#946ed9] rounded-xl px-3 text-sm font-semibold focus:outline-none focus:border-[#946ed9]"
-                  style={{ fontFamily: "'Oxanium', sans-serif" }}
-                />
-              ) : (
-                <span
-                  className="flex-1 min-w-0 h-10 flex items-center px-1 text-sm font-semibold text-[#f0eefa] truncate"
-                  style={{ fontFamily: "'Oxanium', sans-serif" }}
-                >
-                  {activa.nombre}
-                </span>
-              )}
-            </div>
-            {/* Fila inferior en mobile: botones de acción */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setAbiertoModalAgregar(true)}
-                className="flex-1 sm:flex-none h-10 px-3 rounded-xl border border-[#2a2140] text-[#946ed9] hover:border-[#946ed9]/60 flex items-center justify-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Agregar
-              </button>
-
-              <button
-                onClick={() => setModoEdicion(v => !v)}
-                className="flex-1 sm:flex-none h-10 px-3 rounded-xl border border-[#2a2140] text-[#f0eefa] hover:border-[#946ed9]/60 flex items-center justify-center gap-2"
-              >
-                {modoEdicion ? <><Check className="w-4 h-4" /> Listo</> : <><Pencil className="w-4 h-4" /> Editar</>}
-              </button>
-
-              {modoEdicion && (
-                <button
-                  onClick={() => setAEliminarLista(activa)}
-                  aria-label={`Eliminar lista ${activa.nombre}`}
-                  className="flex-1 sm:flex-none h-10 px-3 rounded-xl border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] flex items-center justify-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" /> <span className="sm:hidden">Eliminar</span>
-                </button>
-              )}
-            </div>
+        {!activa ? (
+          <div className="py-16 text-center bg-[#110f1a] border border-dashed border-[#2a2140] rounded-2xl">
+            <p className="text-[#8b82a8]">Este grupo aún no tiene listas. Crea la primera arriba.</p>
           </div>
+        ) : (
+          <div className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden">
+            {/* Barra de controles de la lista activa */}
+            <div className="p-4 sm:p-5 border-b border-[#2a2140] flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex gap-2 sm:flex-1 sm:items-center min-w-0">
+                {modoEdicion ? (
+                  <input
+                    value={activa.nombre}
+                    onChange={e => actualizarListaGrupo(activa.id, { nombre: e.target.value })}
+                    aria-label="Nombre de la lista"
+                    className="flex-1 min-w-0 h-10 bg-[#16141e] border border-[#946ed9] rounded-xl px-3 text-sm font-semibold focus:outline-none focus:border-[#946ed9]"
+                    style={{ fontFamily: "'Oxanium', sans-serif" }}
+                  />
+                ) : (
+                  <span
+                    className="flex-1 min-w-0 text-base font-semibold text-[#f0eefa] truncate"
+                    style={{ fontFamily: "'Oxanium', sans-serif" }}
+                  >
+                    {activa.nombre}
+                  </span>
+                )}
+                <Select valor={orden} onChange={v => setOrden(v as Orden)} opciones={ORDENES} className="w-44 sm:w-56 shrink-0" />
+              </div>
 
-          {/* Filas */}
-          {items.length === 0 ? (
-            <p className="py-12 text-center text-[#8b82a8]">Lista vacía. Agrega títulos con el botón de arriba.</p>
-          ) : (
-            <ul className="bg-[#110f1a] border border-[#2a2140] rounded-2xl overflow-hidden divide-y divide-[#2a2140] mb-5">
-              {items.map((it, i) => (
-                <li
-                  key={it.clave}
-                  draggable={modoEdicion && orden === "manual"}
-                  onDragStart={ev => ev.dataTransfer.setData("text/plain", it.clave)}
-                  onDragOver={ev => modoEdicion && orden === "manual" && ev.preventDefault()}
-                  onDrop={ev => {
-                    if (!modoEdicion || orden !== "manual") return;
-                    ev.preventDefault();
-                    mover(ev.dataTransfer.getData("text/plain"), i + 1);
-                  }}
-                  className="flex items-center gap-3 p-3 hover:bg-[#16141e] transition-colors"
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => setAbiertoModalAgregar(true)}
+                  className="flex-1 sm:flex-none h-10 px-3.5 rounded-xl border border-[#2a2140] text-[#946ed9] hover:border-[#946ed9]/60 flex items-center justify-center gap-2 transition-colors"
                 >
-                  {modoEdicion && orden === "manual" && (
-                    <>
-                      <GripVertical className="hidden sm:block w-4 h-4 text-[#8b82a8] shrink-0 cursor-grab" aria-hidden="true" />
-                      <input
-                        type="number" min={1} max={items.length} value={i + 1}
-                        onChange={ev => mover(it.clave, Number(ev.target.value))}
-                        aria-label={`Posición de ${it.titulo}`}
-                        className="w-12 h-9 bg-[#16141e] border border-[#2a2140] rounded-lg text-center text-sm text-[#f0eefa] shrink-0 focus:outline-none focus:border-[#946ed9]"
-                      />
-                    </>
-                  )}
-                  <img src={it.img} alt="" className="w-10 h-14 sm:w-12 sm:h-16 object-cover rounded-lg bg-[#1c1928] shrink-0" loading="lazy" />
-                  <div className="min-w-0 flex-1">
-                    <Link
-                      to={`/panel/${it.medio}/${it.id}`}
-                      className="text-sm font-semibold block truncate hover:text-[#b08ee8]"
-                      style={{ fontFamily: "'Oxanium', sans-serif" }}
-                    >
-                      {it.titulo}
-                    </Link>
-                    <p className="text-xs text-[#8b82a8] truncate">
-                      <span className="uppercase">{it.medio}</span>
-                      {it.tipo ? ` · ${it.tipo}` : ""}
-                      {it.esExterno ? " · fuera de mis listas" : ""}
-                    </p>
-                  </div>
-                  {modoEdicion && (
-                    <button
-                      onClick={() => setAEliminarItem({ medio: it.medio, tenraiId: it.tenraiId, titulo: it.titulo })}
-                      aria-label={`Quitar ${it.titulo} de ${activa.nombre}`}
-                      className="w-9 h-9 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] flex items-center justify-center shrink-0"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+                  <Plus className="w-4 h-4" /> Agregar
+                </button>
+
+                <button
+                  onClick={() => setModoEdicion(v => !v)}
+                  className="flex-1 sm:flex-none h-10 px-3.5 rounded-xl border border-[#2a2140] text-[#f0eefa] hover:border-[#946ed9]/60 flex items-center justify-center gap-2 transition-colors"
+                >
+                  {modoEdicion ? <><Check className="w-4 h-4" /> Listo</> : <><Pencil className="w-4 h-4" /> Editar</>}
+                </button>
+
+                {modoEdicion && (
+                  <button
+                    onClick={() => setAEliminarLista(activa)}
+                    aria-label={`Eliminar lista ${activa.nombre}`}
+                    className="h-10 px-3.5 rounded-xl border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] hover:border-[#ff9aa8]/40 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" /> <span className="sm:hidden">Eliminar</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Títulos de la lista */}
+            {items.length === 0 ? (
+              <div className="py-14 text-center">
+                <p className="text-[#8b82a8]">Lista vacía. Agrega títulos con el botón de arriba.</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-[#2a2140]">
+                {items.map((it, i) => (
+                  <li
+                    key={it.clave}
+                    draggable={modoEdicion && orden === "manual"}
+                    onDragStart={ev => ev.dataTransfer.setData("text/plain", it.clave)}
+                    onDragOver={ev => modoEdicion && orden === "manual" && ev.preventDefault()}
+                    onDrop={ev => {
+                      if (!modoEdicion || orden !== "manual") return;
+                      ev.preventDefault();
+                      mover(ev.dataTransfer.getData("text/plain"), i + 1);
+                    }}
+                    className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 hover:bg-[#16141e] transition-colors"
+                  >
+                    {modoEdicion && orden === "manual" && (
+                      <>
+                        <GripVertical className="hidden sm:block w-4 h-4 text-[#8b82a8] shrink-0 cursor-grab" aria-hidden="true" />
+                        <input
+                          type="number" min={1} max={items.length} value={i + 1}
+                          onChange={ev => mover(it.clave, Number(ev.target.value))}
+                          aria-label={`Posición de ${it.titulo}`}
+                          className="w-12 h-9 bg-[#16141e] border border-[#2a2140] rounded-lg text-center text-sm text-[#f0eefa] shrink-0 focus:outline-none focus:border-[#946ed9]"
+                        />
+                      </>
+                    )}
+                    <img src={it.img} alt="" className="w-11 h-15 sm:w-12 sm:h-16 object-cover rounded-lg bg-[#1c1928] shrink-0" loading="lazy" />
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        to={`/panel/${it.medio}/${it.id}`}
+                        className="text-sm font-semibold block truncate hover:text-[#b08ee8] transition-colors"
+                        style={{ fontFamily: "'Oxanium', sans-serif" }}
+                      >
+                        {it.titulo}
+                      </Link>
+                      <p className="text-xs text-[#8b82a8] truncate mt-0.5">
+                        <span className="uppercase">{it.medio}</span>
+                        {it.tipo ? ` · ${it.tipo}` : ""}
+                        {it.esExterno ? " · fuera de mis listas" : ""}
+                      </p>
+                    </div>
+                    {modoEdicion && (
+                      <button
+                        onClick={() => setAEliminarItem({ medio: it.medio, tenraiId: it.tenraiId, titulo: it.titulo })}
+                        aria-label={`Quitar ${it.titulo} de ${activa.nombre}`}
+                        className="w-9 h-9 rounded-lg border border-[#2a2140] text-[#8b82a8] hover:text-[#ff9aa8] hover:border-[#ff9aa8]/40 flex items-center justify-center shrink-0 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* Modal Agregar Títulos */}
       <AgregarTitulosModal
