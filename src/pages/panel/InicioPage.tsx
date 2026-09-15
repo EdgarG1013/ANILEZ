@@ -69,11 +69,11 @@ export default function InicioPage() {
       // Top anime/manga devuelven PopularItem[], convertir a CatalogoItem[]
       if (p.status === "fulfilled") setProximos(p.value);
       if (a.status === "fulfilled") setAnimes(a.value.map(i => ({
-        id: i.id, title: i.title, img: i.img, type: "", year: i.year,
+        id: i.id, title: i.title, img: i.img, type: i.type, year: i.year,
         score: null, status: "", genres: i.genres, synopsis: i.synopsis, total: i.count,
       })));
       if (m.status === "fulfilled") setMangas(m.value.map(i => ({
-        id: i.id, title: i.title, img: i.img, type: "", year: i.year,
+        id: i.id, title: i.title, img: i.img, type: i.type, year: i.year,
         score: null, status: "", genres: i.genres, synopsis: i.synopsis, total: i.count,
       })));
       if (n.status === "fulfilled") setNoticias(n.value);

@@ -142,8 +142,8 @@ export default function HeroSection() {
             aria-label={`Ir al slide ${i + 1}`}
             className={`rounded-full transition-all duration-300 ${
               i === slideActual
-                ? "w-6 h-2 bg-[#946ed9]"
-                : "w-2 h-2 bg-white/35 hover:bg-white/60"
+                ? "w-5 h-2.5 bg-[#946ed9]"
+                : "w-2.5 h-2.5 bg-white/35 hover:bg-white/60"
             }`}
           />
         ))}
