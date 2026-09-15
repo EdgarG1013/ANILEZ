@@ -32,6 +32,7 @@ export interface CatalogoRespuesta {
 export interface PopularItem {
   id: number;
   title: string;
+  type: string;
   synopsis: string | null;
   genres: string[];
   year: number | null;
