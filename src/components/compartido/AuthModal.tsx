@@ -52,9 +52,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             className="absolute inset-0"
             style={{ background: "linear-gradient(135deg, rgba(148,110,217,0.25) 0%, rgba(10,9,16,0.7) 100%)" }}
           />
-          <div className="absolute inset-0 flex items-end p-6 md:p-8">
-            <img src={logo} alt="ANILEZ" className="h-7 md:h-8 w-auto drop-shadow-lg" />
-          </div>
+          <button 
+            type="button"
+            onClick={() => { onClose(); navigate("/"); }}
+            className="absolute top-4 right-4 z-10 flex items-end p-6 md:p-8 w-full h-full bg-transparent border-none cursor-pointer"
+          > 
+            <img src={logo} alt="ANILEZ" className="h-7 md:h-8 w-auto drop-shadow-lg" /> 
+          </button>
         </div>
 
         {/* Lado derecho — CTA */}

@@ -12,6 +12,7 @@ import AnimeStreaming from "../../components/anime/AnimeStreaming";
 import AnimeOfficialSite from "../../components/anime/AnimeOfficialSite";
 import AnimeHorizontalCarousel from "../../components/anime/AnimeHorizontalCarousel";
 import DetalleSkeleton from "../../components/compartido/DetalleSkeleton";
+import aniErrorAnime from "../../assets/ani-error-anime-no-found.png";
 
 export default function AnimeDetailsPage() {
   const { id } = useParams();
@@ -42,12 +43,25 @@ export default function AnimeDetailsPage() {
   // Anime no encontrado (id inválido o sin datos)
   if (!anime) {
     return (
-      <main className="min-h-screen bg-background">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-20 text-center">
-          <h1 className="text-foreground text-xl font-semibold mb-3">
+      <main className="min-h-screen bg-[#0a0910] text-[#f0eefa] flex items-center justify-center px-5 py-14 sm:py-20 overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(60% 50% at 50% 20%, rgba(148,110,217,0.18), transparent 70%)",
+          }}
+        />
+        <div className="relative text-center max-w-md">
+          <img
+            src={aniErrorAnime}
+            alt="Anime no encontrado"
+            className="w-64 sm:w-72 md:w-80 mx-auto mb-6 object-contain drop-shadow-[0_16px_32px_rgba(148,110,217,0.22)]"
+            loading="eager"
+          />
+          <h1 className="text-xl font-semibold mb-3" style={{ fontFamily: "'Oxanium', sans-serif" }}>
             Anime no encontrado
           </h1>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-[#a89fc4] text-sm mb-6">
             No tenemos datos para el anime que buscas. Prueba con otro título.
           </p>
           <button
