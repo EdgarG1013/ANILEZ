@@ -45,7 +45,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         }}
       >
         {/* Logo */}
-        <img src={logo} alt="ANILEZ" className="h-20 w-auto mb-15 self-start" />
+        <button onClick={() => window.location.href = "/"}>
+          <img src={logo} alt="ANILEZ" className="h-20 w-auto mb-15 self-start" />
+        </button>
 
         {/* Título */}
         <h1
