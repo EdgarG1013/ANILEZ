@@ -8,7 +8,7 @@ import AnimeCharacters from "../../components/anime/AnimeCharacters";
 import AnimeOfficialSite from "../../components/anime/AnimeOfficialSite";
 import AnimeHorizontalCarousel from "../../components/anime/AnimeHorizontalCarousel";
 import DetalleSkeleton from "../../components/compartido/DetalleSkeleton";
-import aniErrorManga from "../../assets/ani-error-manga-no-found.png";
+import DetalleNoEncontrado from "../../components/compartido/DetalleNoEncontrado";
 
 function InfoFila({ label, value }: { label: string; value: string }) {
   return (
@@ -46,38 +46,7 @@ export default function MangaDetalladoPage() {
   }
 
   if (!manga) {
-    return (
-      <main className="min-h-screen bg-[#0a0910] text-[#f0eefa] flex items-center justify-center px-5 py-14 sm:py-20 overflow-hidden">
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(60% 50% at 50% 20%, rgba(148,110,217,0.18), transparent 70%)",
-          }}
-        />
-        <div className="relative text-center max-w-md">
-          <img
-            src={aniErrorManga}
-            alt="Manga no encontrado"
-            className="w-64 sm:w-72 md:w-80 mx-auto mb-6 object-contain drop-shadow-[0_16px_32px_rgba(148,110,217,0.22)]"
-            loading="eager"
-          />
-          <h1 className="text-xl font-semibold mb-3" style={{ fontFamily: "'Oxanium', sans-serif" }}>
-            Manga no encontrado
-          </h1>
-          <p className="text-[#a89fc4] text-sm mb-6">
-            No tenemos datos para el manga que buscas. Prueba con otro título.
-          </p>
-          <button
-            onClick={() => navigate("/panel/")}
-            className="h-10 px-5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)" }}
-          >
-            Volver al inicio
-          </button>
-        </div>
-      </main>
-    );
+    return <DetalleNoEncontrado medio="manga" onVolver={handleVolver} />;
   }
 
   const handleSeleccionar = (nuevoId: number) => navigate(`/panel/manga/${nuevoId}`);

@@ -12,6 +12,7 @@ import AnimeStreaming from "../../components/anime/AnimeStreaming";
 import AnimeOfficialSite from "../../components/anime/AnimeOfficialSite";
 import AnimeHorizontalCarousel from "../../components/anime/AnimeHorizontalCarousel";
 import DetalleSkeleton from "../../components/compartido/DetalleSkeleton";
+import DetalleNoEncontrado from "../../components/compartido/DetalleNoEncontrado";
 import SEOHead from "../../components/compartido/SEOHead";
 
 export default function AnimeDetailsPage() {
@@ -64,25 +65,7 @@ export default function AnimeDetailsPage() {
 
   // Anime no encontrado (id inválido o sin datos)
   if (!anime) {
-    return (
-      <main className="min-h-screen bg-background">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-20 text-center">
-          <h1 className="text-foreground text-xl font-semibold mb-3">
-            Anime no encontrado
-          </h1>
-          <p className="text-muted-foreground mb-6">
-            No tenemos datos para el anime que buscas. Prueba con otro título.
-          </p>
-          <button
-            onClick={() => navigate("/")}
-            className="h-10 px-5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)" }}
-          >
-            Volver al inicio
-          </button>
-        </div>
-      </main>
-    );
+    return <DetalleNoEncontrado medio="anime" onVolver={handleVolver} />;
   }
 
   const handleSeleccionar = (nuevoId: number) => navigate(`/anime/${nuevoId}`);
