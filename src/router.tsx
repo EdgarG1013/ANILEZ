@@ -7,6 +7,7 @@ import AnimeDetalladoHomePage from "./pages/landing/AnimeDetalladoHomePage";
 import MangaDetalladoHomePage from "./pages/landing/MangaDetalladoHomePage";
 import PrivacidadPage from "./pages/landing/PrivacidadPage";
 import TerminosPage from "./pages/landing/TerminosPage";
+import SobreNosotrosPage from "./components/landing/SobreNosotrosPage";
 // ─── Paginas de autenticación ───────────────────────────────────────
 import IniciarSesionPage from "./pages/autenticacion/IniciarSesionPage";
 import RegistroPage from "./pages/autenticacion/RegistroPage";
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: "manga/:id", element: <MangaDetalladoHomePage /> },
       { path: "privacidad", element: <PrivacidadPage /> },
       { path: "terminos", element: <TerminosPage /> },
+      { path: "sobre-nosotros", element: <SobreNosotrosPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
