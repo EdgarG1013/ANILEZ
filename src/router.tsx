@@ -7,7 +7,7 @@ import AnimeDetalladoHomePage from "./pages/landing/AnimeDetalladoHomePage";
 import MangaDetalladoHomePage from "./pages/landing/MangaDetalladoHomePage";
 import PrivacidadPage from "./pages/landing/PrivacidadPage";
 import TerminosPage from "./pages/landing/TerminosPage";
-import SobreNosotrosPage from "./components/landing/SobreNosotrosPage";
+import SobreNosotrosPage from "./pages/landing/SobreNosotrosPage";
 // ─── Paginas de autenticación ───────────────────────────────────────
 import IniciarSesionPage from "./pages/autenticacion/IniciarSesionPage";
 import RegistroPage from "./pages/autenticacion/RegistroPage";

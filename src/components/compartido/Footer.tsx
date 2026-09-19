@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FaGithub, FaLinkedinIn } from "react-icons/fa";
 import logo from "../../assets/logo.svg";
 
 const anioActual = new Date().getFullYear();
@@ -63,6 +64,21 @@ export default function Footer() {
               Tu espacio personal para rastrear, organizar y descubrir anime y manga.
               Ten el control de todo lo que ves y lees.
             </p>
+            {/* Enlace a GitHub */}
+            <a
+              href="https://github.com/EdgarG1013"
+              aria-label="GitHub"
+              className="w-8 h-8 inline-flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+            >
+            <FaGithub />
+            </a>
+            <a
+              href="https://www.linkedin.com/in/edgar-g1013/"
+              aria-label="LinkedIn"
+              className="w-8 h-8 inline-flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-lg transition-colors gap-2 ml-2"
+            >
+            <FaLinkedinIn />
+            </a>
           </div>
 
           {/* Columnas de navegación generadas dinámicamente */}

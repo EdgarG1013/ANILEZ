@@ -103,6 +103,11 @@ export default function SobreNosotrosPage() {
           autores, estudios y licenciantes; ANILEZ solo se encarga de
           presentarlos de una forma más agradable de navegar.
         </Parrafo>
+        <Parrafo>
+          Ademas me parece importante destacar que hay algunos componentes de la interfaz 
+          que se han inspirado en los diseños de otros proyectos como: <a href="https://sorai-app.vercel.app/" target="_blank">
+          <strong className="text-[#f0eefa]">sorai</strong> </a> sobre todo en el home de la pagina y la pagina de deatalles de anime.
+        </Parrafo>
       </Seccion>
 
       <Seccion numero="05" titulo="Estado del proyecto">
