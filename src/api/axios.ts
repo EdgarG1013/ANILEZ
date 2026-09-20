@@ -1,4 +1,5 @@
-import axios from 'axios';
+import axios, { type AxiosAdapter } from 'axios';
+import { encolar } from './requestQueue';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -7,7 +8,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-  }
+  },
+  adapter: encolar as AxiosAdapter,
 });
 
 api.interceptors.request.use((config) => {

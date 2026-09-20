@@ -8,6 +8,7 @@ import AnimeCharacters from "../../components/anime/AnimeCharacters";
 import AnimeOfficialSite from "../../components/anime/AnimeOfficialSite";
 import AnimeHorizontalCarousel from "../../components/anime/AnimeHorizontalCarousel";
 import DetalleSkeleton from "../../components/compartido/DetalleSkeleton";
+import DetalleNoEncontrado from "../../components/compartido/DetalleNoEncontrado";
 
 function InfoFila({ label, value }: { label: string; value: string }) {
   return (
@@ -45,21 +46,7 @@ export default function MangaDetalladoPage() {
   }
 
   if (!manga) {
-    return (
-      <main className="min-h-screen bg-background">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-10 py-20 text-center">
-          <h1 className="text-foreground text-xl font-semibold mb-3">Manga no encontrado</h1>
-          <p className="text-muted-foreground mb-6">No tenemos datos para el manga que buscas.</p>
-          <button
-            onClick={() => navigate("/panel")}
-            className="h-10 px-5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)" }}
-          >
-            Volver al inicio
-          </button>
-        </div>
-      </main>
-    );
+    return <DetalleNoEncontrado medio="manga" onVolver={handleVolver} />;
   }
 
   const handleSeleccionar = (nuevoId: number) => navigate(`/panel/manga/${nuevoId}`);
