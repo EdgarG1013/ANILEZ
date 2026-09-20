@@ -65,7 +65,7 @@ async function ejecutarFetch(config: InternalAxiosRequestConfig): Promise<unknow
     const res = await fetch(construirUrl(config), {
       method: config.method?.toUpperCase() ?? 'GET',
       headers: construirHeaders(config),
-      body: config.data ? JSON.stringify(config.data) : undefined,
+      body: typeof config.data === 'string' ? config.data : config.data ? JSON.stringify(config.data) : undefined,
       signal: controller.signal,
     });
 
