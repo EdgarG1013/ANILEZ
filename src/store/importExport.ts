@@ -455,7 +455,7 @@ export class ImportManager {
 
       try {
         // ── Crear grupo en backend ──
-        let grupoBackendId = crypto.randomUUID();
+        let grupoBackendId: string = crypto.randomUUID();
         try {
           const grupoCreado = await crearGrupoApi({
             titulo: grupo.titulo,
@@ -477,7 +477,7 @@ export class ImportManager {
           if (this.cancelado) break;
 
           // ── Crear lista en backend ──
-          let listaBackendId = crypto.randomUUID();
+          let listaBackendId: string = crypto.randomUUID();
           try {
             const listaCreada = await crearListaGrupo(grupoBackendId, {
               nombre: lista.nombre,
