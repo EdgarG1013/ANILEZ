@@ -1,9 +1,16 @@
 // ─── Lógica de importación y exportación de biblioteca ───────────────────────
 // Separado de biblioteca.tsx para mantener responsabilidades.
+// Sincroniza cada item con el backend durante la importación.
 
 import type { Entrada, Grupo, ListaPersonalizada, ItemListaGrupo, Estado } from "./biblioteca";
 import type { Medio } from "../api/catalogoService";
 import api from "../api/axios";
+import { agregarALista, type CrearListaPayload } from "../api/listaService";
+import {
+  crearGrupo as crearGrupoApi,
+  crearListaGrupo,
+  agregarItemGrupo,
+} from "../api/grupoService";
 
 // ─── Tipos del archivo exportado ────────────────────────────────────────────
 
@@ -68,7 +75,7 @@ type ImportEstado = "idle" | "procesando" | "completado" | "cancelado";
 
 // ─── Constantes ─────────────────────────────────────────────────────────────
 
-const DELAY_ENTRE_ITEMS = 300;
+const DELAY_ENTRE_ITEMS = 600;
 const MAX_RETRIES = 2;
 const TIMEOUT = 15000;
 
@@ -176,7 +183,7 @@ export async function parsearArchivo(file: File): Promise<ArchivoExport> {
     return raw as unknown as ArchivoExport;
   }
 
-  // TXT: convertir a formato unificado (sin catálogo real)
+  // TXT: convertir a formato unificado
   const entradas: EntradaExport[] = [];
   const lineas = texto.split("\n");
   let orden = 0;
@@ -207,7 +214,7 @@ export async function parsearArchivo(file: File): Promise<ArchivoExport> {
   return { version: 1, exportadoEn: new Date().toISOString(), entradas, grupos: [] };
 }
 
-// ─── ImportManager: cola de importación con progreso ────────────────────────
+// ─── Helpers de API ─────────────────────────────────────────────────────────
 
 function esperar(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
@@ -218,7 +225,6 @@ async function fetchCatalogo(medio: Medio, id: number): Promise<Record<string, u
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT);
-
       const res = await api.get(`catalogo/${medio}/${id}`, { signal: controller.signal });
       clearTimeout(timer);
       return res.data as Record<string, unknown>;
@@ -235,6 +241,24 @@ async function fetchCatalogo(medio: Medio, id: number): Promise<Record<string, u
   }
   return null;
 }
+
+/** Buscar título por nombre en el catálogo (para TXT que no tienen ID) */
+async function buscarPorTitulo(medio: Medio, titulo: string): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await api.get(`/catalogo/${medio}`, {
+      params: { q: titulo, pagina: 1 },
+    });
+    const items = (res.data as { items?: Record<string, unknown>[] })?.items;
+    if (items && items.length > 0) {
+      return items[0];
+    }
+  } catch {
+    // silenciar
+  }
+  return null;
+}
+
+// ─── ImportManager: cola de importación con progreso y sincronización ───────
 
 export class ImportManager {
   estado: ImportEstado = "idle";
@@ -264,15 +288,26 @@ export class ImportManager {
     this.cancelado = true;
   }
 
-  async iniciar(datos: ArchivoExport, reemplazarTodo: (d: { entradas?: Entrada[]; grupos?: Grupo[] }) => void): Promise<void> {
+  async iniciar(
+    datos: ArchivoExport,
+    reemplazarTodo: (d: { entradas?: Entrada[]; grupos?: Grupo[] }) => void,
+  ): Promise<void> {
     this.cancelado = false;
     this.errores = [];
     this.mensajes = [];
     this.procesados = 0;
-    this.total = datos.entradas.length + datos.grupos.reduce((acc, g) => acc + g.listas.reduce((a, l) => a + l.items.length, 0), 0);
+
+    const totalGrupos = datos.grupos.reduce(
+      (acc, g) => 1 + g.listas.reduce((a, l) => a + 1 + l.items.length, 0),
+      0,
+    );
+    this.total = datos.entradas.length + totalGrupos;
     this.actualizarEstado("procesando");
 
-    this.emitir(`Iniciando importación de ${datos.entradas.length} títulos y ${datos.grupos.length} grupos...`, "info");
+    this.emitir(
+      `Iniciando importación de ${datos.entradas.length} títulos y ${datos.grupos.length} grupos...`,
+      "info",
+    );
 
     // ── Procesar entradas ──
     const entradasImportadas: Entrada[] = [];
@@ -282,75 +317,85 @@ export class ImportManager {
       if (this.cancelado) break;
 
       try {
+        let datosCat: Record<string, unknown> | null = null;
+
         if (entrada.id > 0) {
-          const datosCat = await fetchCatalogo(entrada.medio, entrada.id);
-          if (datosCat) {
-            entradasImportadas.push({
-              listaId: null,
-              id: entrada.id,
-              medio: entrada.medio,
-              titulo: (datosCat.title as string) || entrada.titulo,
-              img: (datosCat.img as string) || entrada.img,
-              tipo: (datosCat.type as string) || entrada.tipo,
-              estado: entrada.estado as Estado,
-              progreso: entrada.progreso,
-              total: (datosCat.total as number) ?? entrada.total,
-              favorito: entrada.favorito,
-              puntuacion: entrada.puntuacion,
-              notas: entrada.notas,
-              fechaInicio: entrada.fechaInicio,
-              fechaFin: entrada.fechaFin,
-              agregado: entrada.agregado,
-              orden: entrada.orden,
-              etiquetas: entrada.etiquetas,
-              urlRespaldo: null,
-            });
-          } else {
-            // Sin datos del catálogo, usar los del archivo
-            entradasImportadas.push({
-              listaId: null,
-              id: entrada.id,
-              medio: entrada.medio,
-              titulo: entrada.titulo,
-              img: entrada.img,
-              tipo: entrada.tipo,
-              estado: entrada.estado as Estado,
-              progreso: entrada.progreso,
-              total: entrada.total,
-              favorito: entrada.favorito,
-              puntuacion: entrada.puntuacion,
-              notas: entrada.notas,
-              fechaInicio: entrada.fechaInicio,
-              fechaFin: entrada.fechaFin,
-              agregado: entrada.agregado,
-              orden: entrada.orden,
-              etiquetas: entrada.etiquetas,
-              urlRespaldo: null,
-            });
-            this.emitir(`"${entrada.titulo}" — sin datos de catálogo, usando datos del archivo`, "info");
-          }
+          // JSON import: buscar datos actuales del catálogo por ID
+          datosCat = await fetchCatalogo(entrada.medio, entrada.id);
         } else {
-          // TXT import: id === 0, crear entrada básica
-          entradasImportadas.push({
-            listaId: null,
-            id: Date.now() + entradasImportadas.length,
+          // TXT import: buscar por título
+          this.emitir(`Buscando "${entrada.titulo}" en el catálogo...`, "info");
+          datosCat = await buscarPorTitulo(entrada.medio, entrada.titulo);
+          if (datosCat) {
+            this.emitir(`Encontrado: "${datosCat.title as string}"`, "exito");
+          }
+        }
+
+        const idReal = datosCat
+          ? ((datosCat.id as number) || entrada.id)
+          : entrada.id;
+
+        // Si es TXT y no encontramos el título, saltar
+        if (entrada.id === 0 && !datosCat) {
+          entradasConErrores++;
+          this.errores.push({ item: entrada.titulo, error: "No se encontró en el catálogo" });
+          this.emitir(`"${entrada.titulo}" — no encontrado en el catálogo, omitido`, "error");
+          this.procesados++;
+          this.onProgress?.(this.procesados, this.total);
+          await esperar(DELAY_ENTRE_ITEMS);
+          continue;
+        }
+
+        // Construir entrada local
+        const nuevaEntrada: Entrada = {
+          listaId: null,
+          id: idReal,
+          medio: entrada.medio,
+          titulo: (datosCat?.title as string) || entrada.titulo,
+          img: (datosCat?.img as string) || entrada.img,
+          tipo: (datosCat?.type as string) || entrada.tipo,
+          estado: entrada.estado as Estado,
+          progreso: entrada.progreso,
+          total: (datosCat?.total as number) ?? entrada.total,
+          favorito: entrada.favorito,
+          puntuacion: entrada.puntuacion,
+          notas: entrada.notas,
+          fechaInicio: entrada.fechaInicio,
+          fechaFin: entrada.fechaFin,
+          agregado: entrada.agregado,
+          orden: entrada.orden,
+          etiquetas: entrada.etiquetas.length > 0
+            ? entrada.etiquetas
+            : ((datosCat?.genres as string[]) || []),
+          urlRespaldo: null,
+        };
+
+        entradasImportadas.push(nuevaEntrada);
+
+        // ── Sincronizar con backend ──
+        try {
+          const payload: CrearListaPayload = {
+            tenraiId: String(idReal),
             medio: entrada.medio,
-            titulo: entrada.titulo,
-            img: entrada.img,
-            tipo: entrada.tipo,
-            estado: entrada.estado as Estado,
+            estado: entrada.estado,
             progreso: entrada.progreso,
-            total: entrada.total,
             favorito: entrada.favorito,
             puntuacion: entrada.puntuacion,
-            notas: entrada.notas,
-            fechaInicio: entrada.fechaInicio,
-            fechaFin: entrada.fechaFin,
-            agregado: entrada.agregado,
+            notas: entrada.notas || undefined,
+            etiquetas: nuevaEntrada.etiquetas,
             orden: entrada.orden,
-            etiquetas: entrada.etiquetas,
-            urlRespaldo: null,
-          });
+            datosCatalogo: (datosCat || entrada) as unknown as Record<string, unknown>,
+          };
+          const resultado = await agregarALista(payload);
+          // Actualizar listaId con el ID del backend
+          nuevaEntrada.listaId = resultado.id;
+          nuevaEntrada.urlRespaldo = resultado.urlRespaldo ?? null;
+          this.emitir(`"${nuevaEntrada.titulo}" sincronizado con el servidor`, "exito");
+        } catch (err) {
+          this.emitir(
+            `"${nuevaEntrada.titulo}" guardado localmente (error al sincronizar: ${err instanceof Error ? err.message : "desconocido"})`,
+            "error",
+          );
         }
       } catch (err) {
         entradasConErrores++;
@@ -361,10 +406,7 @@ export class ImportManager {
 
       this.procesados++;
       this.onProgress?.(this.procesados, this.total);
-
-      if (datos.entradas.length > 0) {
-        await esperar(DELAY_ENTRE_ITEMS);
-      }
+      await esperar(DELAY_ENTRE_ITEMS);
     }
 
     // ── Procesar grupos ──
@@ -374,9 +416,40 @@ export class ImportManager {
       if (this.cancelado) break;
 
       try {
+        // ── Crear grupo en backend ──
+        let grupoBackendId = crypto.randomUUID();
+        try {
+          const grupoCreado = await crearGrupoApi({
+            titulo: grupo.titulo,
+            descripcion: grupo.descripcion,
+            etiquetas: grupo.etiquetas,
+          });
+          grupoBackendId = grupoCreado.id;
+          this.emitir(`Grupo "${grupo.titulo}" creado en el servidor`, "exito");
+        } catch (err) {
+          this.emitir(
+            `Grupo "${grupo.titulo}" guardado localmente (error al sincronizar)`,
+            "error",
+          );
+        }
+
         const listas: ListaPersonalizada[] = [];
 
         for (const lista of grupo.listas) {
+          if (this.cancelado) break;
+
+          // ── Crear lista en backend ──
+          let listaBackendId = crypto.randomUUID();
+          try {
+            const listaCreada = await crearListaGrupo(grupoBackendId, {
+              nombre: lista.nombre,
+              orden: lista.orden,
+            });
+            listaBackendId = listaCreada.id;
+          } catch {
+            // silenciar
+          }
+
           const items: ItemListaGrupo[] = [];
 
           for (const item of lista.items) {
@@ -385,14 +458,13 @@ export class ImportManager {
             let img = item.img;
             let tipo = item.tipo;
 
-            if (item.esExterno && item.tenraiId) {
-              const idNum = Number(item.tenraiId);
-              if (!isNaN(idNum) && idNum > 0) {
-                const datosCat = await fetchCatalogo(item.medio, idNum);
-                if (datosCat) {
-                  img = (datosCat.img as string) || img;
-                  tipo = (datosCat.type as string) || tipo;
-                }
+            // Buscar datos actuales del catálogo
+            const idNum = Number(item.tenraiId);
+            if (!isNaN(idNum) && idNum > 0) {
+              const datosCat = await fetchCatalogo(item.medio, idNum);
+              if (datosCat) {
+                img = (datosCat.img as string) || img;
+                tipo = (datosCat.type as string) || tipo;
               }
               await esperar(DELAY_ENTRE_ITEMS);
             }
@@ -408,12 +480,24 @@ export class ImportManager {
               esExterno: item.esExterno,
             });
 
+            // ── Agregar item al backend ──
+            try {
+              await agregarItemGrupo(listaBackendId, {
+                medio: item.medio,
+                tenraiId: item.tenraiId,
+                orden: items.length - 1,
+                datosCatalogo: {},
+              });
+            } catch {
+              // silenciar
+            }
+
             this.procesados++;
             this.onProgress?.(this.procesados, this.total);
           }
 
           listas.push({
-            id: crypto.randomUUID(),
+            id: listaBackendId,
             nombre: lista.nombre,
             items,
             orden: lista.orden,
@@ -421,7 +505,7 @@ export class ImportManager {
         }
 
         gruposImportados.push({
-          id: crypto.randomUUID(),
+          id: grupoBackendId,
           titulo: grupo.titulo,
           descripcion: grupo.descripcion,
           portadaUrl: grupo.portadaUrl,
@@ -430,7 +514,10 @@ export class ImportManager {
           creadoEn: grupo.creadoEn || new Date().toISOString(),
         });
 
-        this.emitir(`Grupo "${grupo.titulo}" importado con ${listas.length} listas.`, "exito");
+        this.emitir(
+          `Grupo "${grupo.titulo}" importado con ${listas.length} listas.`,
+          "exito",
+        );
       } catch (err) {
         const msg = `Error al importar grupo "${grupo.titulo}": ${err instanceof Error ? err.message : "Error desconocido"}`;
         this.errores.push({ item: grupo.titulo, error: msg });
@@ -438,7 +525,7 @@ export class ImportManager {
       }
     }
 
-    // ── Resultado final ──
+    // ── Guardar en estado local ──
     if (!this.cancelado) {
       reemplazarTodo({
         entradas: entradasImportadas.length > 0 ? entradasImportadas : undefined,
@@ -457,10 +544,16 @@ export class ImportManager {
       this.emitir("Importación cancelada por el usuario.", "error");
       this.actualizarEstado("cancelado");
     } else if (this.errores.length === 0) {
-      this.emitir(`Importación completada: ${resultado.entradasImportadas} títulos, ${resultado.gruposImportados} grupos.`, "exito");
+      this.emitir(
+        `Importación completada: ${resultado.entradasImportadas} títulos, ${resultado.gruposImportados} grupos.`,
+        "exito",
+      );
       this.actualizarEstado("completado");
     } else {
-      this.emitir(`Importación completada con ${this.errores.length} errores.`, "error");
+      this.emitir(
+        `Importación completada con ${this.errores.length} errores.`,
+        "error",
+      );
       this.actualizarEstado("completado");
     }
 
