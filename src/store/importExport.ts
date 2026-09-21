@@ -145,24 +145,44 @@ export function exportarJSON(entradas: Entrada[], grupos: Grupo[]): void {
 }
 
 export function exportarTXT(entradas: Entrada[], grupos: Grupo[]): void {
+  const animeCount = entradas.filter(e => e.medio === "anime").length;
+  const mangaCount = entradas.filter(e => e.medio === "manga").length;
+  const data = stripUUIDs(entradas, grupos);
+  const jsonBloque = JSON.stringify(data, null, 2);
+
   const lineas = [
-    "ANILEZ — Biblioteca personal",
+    "═══════════════════════════════════════════════════",
+    "  ANILEZ — Respaldo de biblioteca",
+    `  Exportado: ${new Date().toLocaleDateString("es", { year: "numeric", month: "long", day: "numeric" })}`,
+    "═══════════════════════════════════════════════════",
     "",
-    "─── Anime ───",
+    `  Anime: ${animeCount}  |  Manga: ${mangaCount}  |  Grupos: ${grupos.length}`,
+    "",
+    "─── Resumen de títulos ───",
+    "",
     ...entradas.filter(e => e.medio === "anime").map(e =>
-      `  ${e.titulo} — ${e.estado} — ${e.progreso}/${e.total ?? "?"} — agregado ${new Date(e.agregado).toLocaleDateString("es")}`
+      `  [anime] ${e.titulo} — ${e.estado} — ${e.progreso}/${e.total ?? "?"}`
     ),
     "",
-    "─── Manga ───",
     ...entradas.filter(e => e.medio === "manga").map(e =>
-      `  ${e.titulo} — ${e.estado} — ${e.progreso}/${e.total ?? "?"} — agregado ${new Date(e.agregado).toLocaleDateString("es")}`
+      `  [manga] ${e.titulo} — ${e.estado} — ${e.progreso}/${e.total ?? "?"}`
     ),
     "",
-    "─── Grupos ───",
     ...grupos.map(g => [
-      `  ${g.titulo}${g.etiquetas.length ? ` (${g.etiquetas.join(", ")})` : ""}`,
+      `  Grupo: ${g.titulo}${g.etiquetas.length ? ` (${g.etiquetas.join(", ")})` : ""}`,
       ...g.listas.map(l => `    • ${l.nombre} [${l.items.length} títulos]`),
     ].join("\n")),
+    "",
+    "═══════════════════════════════════════════════════",
+    "  Los datos completos para importar se encuentran",
+    "  en el bloque JSON debajo de esta línea.",
+    "  NO edites la sección JSON a menos que sepas",
+    "  lo que estás haciendo.",
+    "═══════════════════════════════════════════════════",
+    "",
+    "---JSON_DATA_START---",
+    jsonBloque,
+    "---JSON_DATA_END---",
   ];
   const fecha = new Date().toISOString().slice(0, 10);
   descargar(lineas.join("\n"), `ANILEZ-biblioteca-${fecha}.txt`, "text/plain");
@@ -183,7 +203,23 @@ export async function parsearArchivo(file: File): Promise<ArchivoExport> {
     return raw as unknown as ArchivoExport;
   }
 
-  // TXT: convertir a formato unificado
+  // TXT: intentar extraer bloque JSON embebido (nuevo formato)
+  const jsonInicio = texto.indexOf("---JSON_DATA_START---");
+  const jsonFin = texto.indexOf("---JSON_DATA_END---");
+
+  if (jsonInicio !== -1 && jsonFin !== -1) {
+    const jsonBloque = texto.slice(jsonInicio + "---JSON_DATA_START---".length, jsonFin).trim();
+    try {
+      const raw = JSON.parse(jsonBloque) as Record<string, unknown>;
+      if (raw.version && Array.isArray(raw.entradas)) {
+        return raw as unknown as ArchivoExport;
+      }
+    } catch {
+      throw new Error("El bloque JSON dentro del archivo TXT está corrupto.");
+    }
+  }
+
+  // TXT legacy: formato antiguo sin JSON embebido
   const entradas: EntradaExport[] = [];
   const lineas = texto.split("\n");
   let orden = 0;
