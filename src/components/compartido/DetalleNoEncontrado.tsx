@@ -3,19 +3,19 @@ import ilustracionAnime from "../../assets/ani-error-anime-no-found.png";
 import ilustracionManga from "../../assets/ani-error-manga-no-found.png";
 
 const MICROCOPIA_ANIME = [
-  "¡Los datos del anime se evaporaron! Parece que la bibliotecaria troppezó con el cable del servidor mientras buscaba este título.",
-  "¡Ups! Este anime se escondió tan bien que ni la bibliotecaria pudo encontrarlo.",
+  "¡Oops! La bibliotecaria buscó tanto este anime que terminó transportada a un isekai.",
+  "¡Error 404! La TV retro se puso triste y se negó a reproducir este anime.",
   "¡AYYY! Los registros de este anime se cayeron del estante. Dame un segundo para recogerlos.",
-  "¡Error inesperado! La bibliotecaria está buscando este anime debajo del escritorio.",
-  "¡Los catálogos se desordenaron! Parece que un gato virtual se comió la ficha de este anime.",
+  "Parece que este anime está en 'filler' o aún no ha sido adaptado. ¡No lo encontramos!",
+  "¡La bibliotecaria usó su jutsu de búsqueda, pero este anime sigue desaparecido!",
 ];
 
 const MICROCOPIA_MANGA = [
-  "¡Los datos del manga se evaporaron! Parece que la bibliotecaria tropepezó con el cable del servidor mientras buscaba este título.",
-  "¡Ups! Este manga se escondió tan bien que ni la bibliotecaria pudo encontrarlo.",
-  "¡AYYY! Los registros de este manga se cayeron del estante. Dame un segundo para recogerlos.",
-  "¡Error inesperado! La bibliotecaria está buscando este manga debajo del escritorio.",
-  "¡Los catálogos se desordenaron! Parece que un gato virtual se comió la ficha de este manga.",
+  "¡Ayuda! ¡Una avalancha de tomos acaba de sepultar a la bibliotecaria!",
+  "¡Los datos del manga se evaporaron! La bibliotecaria tropezó con el cable del servidor por llevar demasiados volúmenes.",
+  "¡Maldición! Este capítulo entró en hiatus y no encontramos la ficha.",
+  "¡Ups! Se nos cayeron todos los mangas del estante y este título quedó sepultado.",
+  "¡Error! Un espíritu del manga desordenó el archivo y traspapeló esta obra.",
 ];
 
 function microcopaAleatoria(medio: "anime" | "manga"): string {
@@ -35,7 +35,7 @@ export default function DetalleNoEncontrado({
   const titulo = medio === "anime" ? "anime" : "manga";
   const altText = medio === "anime"
     ? "Bibliotecaria anime confundida con televisor apagado"
-    : "Bibliotecaria anime asustada con libros volando";
+    : "Bibliotecaria manga asustada con libros volando";
 
   return (
     <main className="min-h-screen bg-[#0a0910] text-[#f0eefa] flex items-center justify-center px-5 py-14 sm:py-20 overflow-hidden">
@@ -47,7 +47,7 @@ export default function DetalleNoEncontrado({
         }}
       />
 
-      <div className="relative w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 items-center gap-8 md:gap-14 lg:gap-20 text-center md:text-left">
+      <div className="relative w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 items-center gap-8 md:gap-14 lg:gap-20 text-center md:text-left mt-[-32px]">
         {/* Ilustración + bocadillo */}
         <div className="order-1 md:order-2 flex flex-col items-center justify-center">
           <div className="relative mb-0 max-w-sm sm:max-w-md md:max-w-lg">
@@ -80,7 +80,7 @@ export default function DetalleNoEncontrado({
           <img
             src={ilustracion}
             alt={altText}
-            className="mt-[-32px] w-56 xs:w-64 sm:w-72 md:w-80 lg:w-96 h-auto object-contain drop-shadow-[0_16px_32px_rgba(148,110,217,0.22)]"
+            className="w-64 xs:w-72 sm:w-80 md:w-96 lg:w-108 h-auto object-contain drop-shadow-[0_16px_32px_rgba(148,110,217,0.22)]"
             loading="eager"
           />
         </div>

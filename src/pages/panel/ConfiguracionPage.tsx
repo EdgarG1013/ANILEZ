@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Upload, Download, User, KeyRound, FileJson, FileText, ShieldAlert, Camera, Mail, CheckCircle, AlertCircle, Lock, Trash2 } from "lucide-react";
-import { useBiblioteca, type Entrada, type Grupo } from "../../store/biblioteca";
+import { Upload, Download, User, KeyRound, FileJson, FileText, ShieldAlert, Camera, Mail, CheckCircle, AlertCircle, Lock, Trash2, X } from "lucide-react";
+import { useBiblioteca } from "../../store/biblioteca";
 import { useAuth } from "../../store/auth";
 import api from "../../api/axios";
 import {
@@ -13,6 +13,7 @@ import {
 } from "../../api/authService";
 import { PasswordField } from "../../components/ui/FormFields";
 import ConfirmDeleteModal from "../../components/ui/ConfirmDeleteAccountModal";
+import { exportarJSON, exportarTXT, parsearArchivo, ImportManager, type ImportResultado } from "../../store/importExport";
 
 // ─── Utilidades ──────────────────────────────────────────────────────────────
 
@@ -81,6 +82,13 @@ export default function ConfiguracionPage() {
   const [subiendoAvatar, setSubiendoAvatar] = useState(false);
   const archivoRef = useRef<HTMLInputElement>(null);
   const avatarRef = useRef<HTMLInputElement>(null);
+
+  // ─── Estado de importación ──────────────────────────────────────
+  const [importando, setImportando] = useState(false);
+  const [progreso, setProgreso] = useState({ procesados: 0, total: 0 });
+  const [mensajesImport, setMensajesImport] = useState<{ texto: string; tipo: "info" | "exito" | "error" }[]>([]);
+  const [resultadoImport, setResultadoImport] = useState<ImportResultado | null>(null);
+  const importManagerRef = useRef<ImportManager | null>(null);
 
   // ─── Mensajes por sección ─────────────────────────────────────────
   const [msgPerfil, setMsgPerfil] = useState<{ texto: string; tipo: "exito" | "error" } | null>(null);
@@ -158,88 +166,50 @@ export default function ConfiguracionPage() {
 
   // ─── Helpers ──────────────────────────────────────────────────────
 
-  function descargar(contenido: string, nombreArchivo: string, tipo: string) {
-    const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = nombreArchivo;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+  const exportarJson = () => exportarJSON(entradas, grupos);
+  const exportarTxt = () => exportarTXT(entradas, grupos);
 
-  const exportarJson = () =>
-    descargar(JSON.stringify({ entradas, grupos }, null, 2), "ANILEZ-biblioteca.json", "application/json");
+  // ─── Protección beforeunload durante importación ─────────────────
+  useEffect(() => {
+    if (!importando) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [importando]);
 
-  const exportarTxt = () => {
-    const lineas = [
-      "ANILEZ — Biblioteca personal",
-      "",
-      ...entradas.map(e => `[${e.medio}] ${e.titulo} — ${e.estado} — ${e.progreso}/${e.total ?? "?"} — agregado ${new Date(e.agregado).toLocaleDateString("es")}`),
-      "",
-      "Grupos:",
-      ...grupos.map(g => `- ${g.titulo} (${g.etiquetas.join(", ")}): ${g.listas.map(l => `${l.nombre} [${l.items.length}]`).join(" | ")}`),
-    ];
-    descargar(lineas.join("\n"), "ANILEZ-biblioteca.txt", "text/plain");
-  };
-
+  // ─── Importación con ImportManager ───────────────────────────────
   async function importar(file: File) {
-    const texto = await file.text();
+    let datos;
     try {
-      if (file.name.endsWith(".json")) {
-        const datos = JSON.parse(texto) as { entradas?: Record<string, unknown>[]; grupos?: Grupo[] };
-        const entradasMigradas: Entrada[] = (datos.entradas ?? []).map(e => ({
-          listaId: (e.listaId as string) ?? null,
-          id: (e.id as number) ?? 0,
-          medio: (e.medio as Entrada["medio"]) ?? "anime",
-          titulo: (e.titulo as string) ?? "",
-          img: (e.img as string) ?? "",
-          tipo: (e.tipo as string) ?? "",
-          estado: (e.estado as Entrada["estado"]) ?? "por-ver",
-          progreso: (e.progreso as number) ?? 0,
-          total: (e.total as number) ?? null,
-          favorito: (e.favorito as boolean) ?? false,
-          puntuacion: (e.puntuacion as number) ?? 0,
-          notas: (e.notas as string) ?? "",
-          fechaInicio: (e.fechaInicio as string) ?? "",
-          fechaFin: (e.fechaFin as string) ?? "",
-          agregado: (e.agregado as string) ?? new Date().toISOString(),
-          orden: (e.orden as number) ?? 0,
-          etiquetas: (e.etiquetas as string[]) ?? [],
-          urlRespaldo: (e.urlRespaldo as string) ?? null,
-        }));
-        reemplazarTodo({ entradas: entradasMigradas, grupos: datos.grupos });
-        mostrar("importar", `Se importaron ${entradasMigradas.length} títulos desde JSON.`);
-      } else {
-        const nuevas: Entrada[] = texto.split("\n").flatMap((linea, i) => {
-          const m = linea.match(/^\[(anime|manga)\]\s*(.+?)\s*—\s*([\w-]+)/i);
-          if (!m) return [];
-          return [{
-            listaId: null,
-            id: Date.now() + i,
-            medio: m[1].toLowerCase() as Entrada["medio"],
-            titulo: m[2].trim(),
-            img: "",
-            tipo: m[1].toLowerCase() === "anime" ? "TV" : "Manga",
-            estado: m[3] as Entrada["estado"],
-            progreso: 0,
-            total: null,
-            favorito: false,
-            puntuacion: 0,
-            notas: "",
-            fechaInicio: "",
-            fechaFin: "",
-            agregado: new Date().toISOString(),
-            orden: i,
-            etiquetas: [],
-            urlRespaldo: null,
-          }];
-        });
-        reemplazarTodo({ entradas: nuevas });
-        mostrar("importar", `Se importaron ${nuevas.length} títulos desde TXT.`);
-      }
+      datos = await parsearArchivo(file);
     } catch {
       mostrar("importar", "No pudimos leer el archivo. Verifica el formato.", "error");
+      return;
     }
+
+    const manager = new ImportManager();
+    importManagerRef.current = manager;
+    setImportando(true);
+    setMensajesImport([]);
+    setResultadoImport(null);
+    setProgreso({ procesados: 0, total: 0 });
+
+    manager.onProgress = (p, t) => setProgreso({ procesados: p, total: t });
+    manager.onMensaje = (msg, tipo) => setMensajesImport(prev => [...prev, { texto: msg, tipo }]);
+    manager.onCompletado = (resultado) => {
+      setResultadoImport(resultado);
+      setImportando(false);
+      importManagerRef.current = null;
+    };
+
+    await manager.iniciar(datos, reemplazarTodo);
+  }
+
+  function cancelarImport() {
+    importManagerRef.current?.cancelar();
   }
 
   // ─── Handlers ─────────────────────────────────────────────────────
@@ -613,27 +583,81 @@ export default function ConfiguracionPage() {
         <p className="text-sm text-[#8b82a8] mb-6">
           Descarga una copia de tu biblioteca y tus grupos, o restaura desde un archivo JSON o TXT.
         </p>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={exportarJson} className="h-10 px-4 rounded-xl text-sm font-semibold text-white flex items-center gap-2"
-            style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)" }}>
-            <Download className="w-4 h-4" /> Exportar JSON
-          </button>
-          <button onClick={exportarTxt} className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 flex items-center gap-2">
-            <FileText className="w-4 h-4" /> Exportar TXT
-          </button>
-          <button onClick={() => archivoRef.current?.click()} className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 flex items-center gap-2">
-            <Upload className="w-4 h-4" /> Importar archivo
-          </button>
-          <input
-            ref={archivoRef}
-            type="file"
-            accept=".json,.txt"
-            className="sr-only"
-            aria-label="Importar biblioteca desde archivo"
-            onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = ""; }}
-          />
-        </div>
-        <MensajeSeccion msg={msgImportar} />
+        {importando ? (
+          <div className="space-y-4">
+            <div>
+              <div className="flex justify-between text-xs text-[#8b82a8] mb-1.5">
+                <span>Importando tu biblioteca...</span>
+                <span>{progreso.total > 0 ? `${Math.round((progreso.procesados / progreso.total) * 100)}%` : "0%"}</span>
+              </div>
+              <div className="h-2 bg-[#16141e] rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-300" style={{
+                  width: `${progreso.total > 0 ? (progreso.procesados / progreso.total) * 100 : 0}%`,
+                  background: "linear-gradient(90deg, #946ed9, #7c4dca)",
+                }} />
+              </div>
+              <p className="text-xs text-[#8b82a8] mt-1">
+                {progreso.procesados} / {progreso.total} items procesados
+              </p>
+            </div>
+            <div className="max-h-40 overflow-y-auto space-y-1 border border-[#2a2140] rounded-xl p-3 bg-[#0d0b14]">
+              {mensajesImport.map((m, i) => (
+                <p key={i} className="text-xs flex items-start gap-1.5" style={{ color: m.tipo === "error" ? "#f87171" : m.tipo === "exito" ? "#34d399" : "#8b82a8" }}>
+                  {m.tipo === "error" ? <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" /> : m.tipo === "exito" ? <CheckCircle className="w-3 h-3 mt-0.5 shrink-0" /> : null}
+                  {m.texto}
+                </p>
+              ))}
+            </div>
+            <button onClick={cancelarImport} className="h-9 px-4 rounded-xl text-xs font-semibold border border-red-500/40 text-red-400 hover:bg-red-500/10 flex items-center gap-1.5">
+              <X className="w-3.5 h-3.5" /> Cancelar
+            </button>
+          </div>
+        ) : resultadoImport ? (
+          <div className="space-y-3">
+            <div className={`flex items-center gap-2 text-sm font-semibold ${resultadoImport.errores.length === 0 ? "text-emerald-400" : "text-yellow-400"}`}>
+              {resultadoImport.errores.length === 0 ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+              Importación {resultadoImport.errores.length === 0 ? "completada" : "completada con errores"}
+            </div>
+            <div className="text-xs text-[#8b82a8] space-y-1">
+              <p>{resultadoImport.entradasImportadas} títulos importados{resultadoImport.entradasConErrores > 0 ? `, ${resultadoImport.entradasConErrores} con errores` : ""}.</p>
+              <p>{resultadoImport.gruposImportados} grupos importados.</p>
+              {resultadoImport.errores.length > 0 && (
+                <div className="mt-2 max-h-32 overflow-y-auto space-y-1 border border-[#2a2140] rounded-xl p-3 bg-[#0d0b14]">
+                  {resultadoImport.errores.map((e, i) => (
+                    <p key={i} className="text-red-400 text-xs">{e.item}: {e.error}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={() => { setResultadoImport(null); setMensajesImport([]); }} className="h-9 px-4 rounded-xl text-xs font-semibold border border-[#2a2140] hover:border-[#946ed9]/60">
+              Cerrar
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={exportarJson} className="h-10 px-4 rounded-xl text-sm font-semibold text-white flex items-center gap-2"
+                style={{ background: "linear-gradient(135deg, #946ed9, #7c4dca)" }}>
+                <Download className="w-4 h-4" /> Exportar JSON
+              </button>
+              <button onClick={exportarTxt} className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 flex items-center gap-2">
+                <FileText className="w-4 h-4" /> Exportar TXT
+              </button>
+              <button onClick={() => archivoRef.current?.click()} className="h-10 px-4 rounded-xl text-sm font-semibold border border-[#2a2140] hover:border-[#946ed9]/60 flex items-center gap-2">
+                <Upload className="w-4 h-4" /> Importar archivo
+              </button>
+              <input
+                ref={archivoRef}
+                type="file"
+                accept=".json,.txt"
+                className="sr-only"
+                aria-label="Importar biblioteca desde archivo"
+                onChange={e => { const f = e.target.files?.[0]; if (f) importar(f); e.target.value = ""; }}
+              />
+            </div>
+            <MensajeSeccion msg={msgImportar} />
+          </>
+        )}
       </section>
 
       {/* ─── Danger Zone ────────────────────────────────────────── */}
