@@ -40,6 +40,7 @@ export interface ItemListaExport {
   img: string;
   tipo: string;
   esExterno: boolean;
+  datosCatalogo: Record<string, unknown>;
 }
 
 export interface ListaExport {
@@ -116,6 +117,7 @@ function stripUUIDs(entradas: Entrada[], grupos: Grupo[]): ArchivoExport {
         img: it.img,
         tipo: it.tipo,
         esExterno: it.esExterno,
+        datosCatalogo: { ...it.datosCatalogo },
       })),
     })),
     creadoEn: g.creadoEn,
@@ -333,11 +335,11 @@ export class ImportManager {
     this.mensajes = [];
     this.procesados = 0;
 
-    const totalGrupos = datos.grupos.reduce(
-      (acc, g) => 1 + g.listas.reduce((a, l) => a + 1 + l.items.length, 0),
+    const totalItemsGrupos = datos.grupos.reduce(
+      (acc, g) => acc + g.listas.reduce((a, l) => a + l.items.length, 0),
       0,
     );
-    this.total = datos.entradas.length + totalGrupos;
+    this.total = datos.entradas.length + totalItemsGrupos;
     this.actualizarEstado("procesando");
 
     this.emitir(
@@ -493,16 +495,25 @@ export class ImportManager {
 
             let img = item.img;
             let tipo = item.tipo;
+            const datosCatalogo = item.datosCatalogo ?? {};
 
-            // Buscar datos actuales del catálogo
-            const idNum = Number(item.tenraiId);
-            if (!isNaN(idNum) && idNum > 0) {
-              const datosCat = await fetchCatalogo(item.medio, idNum);
-              if (datosCat) {
-                img = (datosCat.img as string) || img;
-                tipo = (datosCat.type as string) || tipo;
+            // Si no hay datos del catálogo en el archivo, buscar actuales
+            if (Object.keys(datosCatalogo).length === 0) {
+              const idNum = Number(item.tenraiId);
+              if (!isNaN(idNum) && idNum > 0) {
+                const datosCat = await fetchCatalogo(item.medio, idNum);
+                if (datosCat) {
+                  img = (datosCat.img as string) || img;
+                  tipo = (datosCat.type as string) || tipo;
+                }
+                await esperar(DELAY_ENTRE_ITEMS);
               }
-              await esperar(DELAY_ENTRE_ITEMS);
+            } else {
+              // Usar imágenes del datosCatalogo exportado
+              const images = (datosCatalogo as Record<string, unknown>).images as Record<string, unknown> | undefined;
+              const jpg = images?.jpg as Record<string, unknown> | undefined;
+              img = (jpg?.large_image_url as string) || (jpg?.image_url as string) || (datosCatalogo as Record<string, unknown>).img as string || img;
+              tipo = (datosCatalogo as Record<string, unknown>).type as string || tipo;
             }
 
             items.push({
@@ -512,7 +523,7 @@ export class ImportManager {
               titulo: item.titulo,
               img,
               tipo,
-              datosCatalogo: {},
+              datosCatalogo,
               esExterno: item.esExterno,
             });
 
@@ -522,7 +533,7 @@ export class ImportManager {
                 medio: item.medio,
                 tenraiId: item.tenraiId,
                 orden: items.length - 1,
-                datosCatalogo: {},
+                datosCatalogo: Object.keys(datosCatalogo).length > 0 ? datosCatalogo : undefined,
               });
             } catch {
               // silenciar
